@@ -1,7 +1,10 @@
 plugins {
     id 'net.minecraftforge.gradleutils'
     id 'java-library'
+    id 'maven-publish'
 }
+
+version = gradleutils.getTagOffsetBranchVersion();
 
 repositories {
     mavenCentral()
@@ -27,4 +30,38 @@ dependencies {
 
 test {
     useJUnitPlatform()
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            pom {
+                name = project.name
+                description = 'JiJ Utilities for handling mod candidates which are already in a jar..'
+                url = 'https://github.com/MinecraftForge/JIJUtils'
+
+                scm {
+                    url = 'https://github.com/MinecraftForge/JIJUtils'
+                    connection = 'scm:git:git://github.com/MinecraftForge/JIJUtils.git'
+                    developerConnection = 'scm:git:git@github.com:MinecraftForge/JIJUtils.git'
+                }
+
+                issueManagement {
+                    system = 'github'
+                    url = 'https://github.com/MinecraftForge/JIJUtils/issues'
+                }
+
+                licenses {
+                    license {
+                        name = 'LGPL 2.1'
+                        url = 'https://github.com/MinecraftForge/JIJUtils/blob/master/LICENSE.txt'
+                        distribution = 'repo'
+                    }
+                }
+            }
+        }
+    }
+    repositories {
+        maven gradleutils.getPublishingForgeMaven()
+    }
 }
