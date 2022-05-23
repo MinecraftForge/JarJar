@@ -1,0 +1,12 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        maven { url = 'https://maven.minecraftforge.net/' }
+    }
+
+    plugins {
+        id 'net.minecraftforge.gradleutils' version '2.0.10'
+    }
+}
+
+rootProject.name = 'JIJUtils'
