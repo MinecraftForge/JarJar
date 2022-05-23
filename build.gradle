@@ -4,6 +4,7 @@ plugins {
     id 'maven-publish'
 }
 
+group = 'net.minecraftforge'
 version = gradleutils.getTagOffsetBranchVersion();
 
 repositories {
@@ -35,6 +36,8 @@ test {
 publishing {
     publications {
         mavenJava(MavenPublication) {
+            from components.java
+
             pom {
                 name = project.name
                 description = 'JiJ Utilities for handling mod candidates which are already in a jar..'

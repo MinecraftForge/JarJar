@@ -14,7 +14,7 @@ public final class JarSelector
         throw new IllegalStateException("Can not instantiate an instance of: JarSelector. This is a utility class");
     }
 
-    public List<ContainedJar> select(final List<ContainedJar> inputs) {
+    public static List<ContainedJar> select(final List<ContainedJar> inputs) {
         final Map<ContainedJarIdentifier, List<ContainedJar>> jarsByIdentifier = inputs.stream()
                                                                                    .collect(Collectors.groupingBy(ContainedJar::identifier));
 
@@ -29,7 +29,7 @@ public final class JarSelector
                      //Find the most agreeable version:
                      final VersionRange range = jars.stream()
                                                   .map(ContainedJar::version)
-                                                  .reduce(null, this::restrictRanges);
+                                                  .reduce(null, JarSelector::restrictRanges);
 
                      if (!isValid(range)) {
                          return Stream.empty();
@@ -44,7 +44,7 @@ public final class JarSelector
                  .collect(Collectors.toList());
     }
 
-    private VersionRange restrictRanges(final VersionRange versionRange, final VersionRange versionRange2)
+    private static VersionRange restrictRanges(final VersionRange versionRange, final VersionRange versionRange2)
     {
         if (versionRange == null) {
             return versionRange2;
@@ -57,7 +57,7 @@ public final class JarSelector
         return versionRange.restrict(versionRange);
     }
 
-    private boolean isValid(final VersionRange range) {
+    private static boolean isValid(final VersionRange range) {
         return range.getRecommendedVersion() == null && !range.hasRestrictions();
     }
 }
