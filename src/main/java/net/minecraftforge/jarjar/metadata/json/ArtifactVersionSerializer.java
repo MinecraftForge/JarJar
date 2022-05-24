@@ -1,4 +1,4 @@
-package net.minecraftforge.spi.jij.json;
+package net.minecraftforge.jarjar.metadata.json;
 
 import com.google.gson.*;
 import org.apache.maven.artifact.versioning.ArtifactVersion;

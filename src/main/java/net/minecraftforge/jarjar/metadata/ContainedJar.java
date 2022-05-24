@@ -1,4 +1,4 @@
-package net.minecraftforge.spi.jij;
+package net.minecraftforge.jarjar.metadata;
 
 import org.apache.maven.artifact.versioning.VersionRange;
 

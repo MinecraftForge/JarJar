@@ -1,5 +1,7 @@
-package net.minecraftforge.spi.jij;
+package net.minecraftforge.jarjar.selection;
 
+import net.minecraftforge.jarjar.metadata.ContainedJar;
+import net.minecraftforge.jarjar.metadata.ContainedJarIdentifier;
 import org.apache.maven.artifact.versioning.VersionRange;
 
 import java.util.List;

@@ -1,0 +1,2 @@
+net.minecraftforge.jarjar.nio.layzip.LayeredZipFileSystemProvider
+net.minecraftforge.jarjar.nio.pathfs.PathFileSystemProvider

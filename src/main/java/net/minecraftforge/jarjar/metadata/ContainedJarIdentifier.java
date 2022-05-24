@@ -1,4 +1,4 @@
-package net.minecraftforge.spi.jij;
+package net.minecraftforge.jarjar.metadata;
 
 public record ContainedJarIdentifier(String group, String artifact)
 {

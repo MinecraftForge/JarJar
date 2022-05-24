@@ -7,6 +7,15 @@ plugins {
 group = 'net.minecraftforge'
 version = gradleutils.getTagOffsetBranchVersion();
 
+sourceSets {
+    test {
+        java {
+            srcDir file('src/binks/java')
+        }
+        resources.srcDir file('src/binks/resources')
+    }
+}
+
 repositories {
     mavenCentral()
     maven {
@@ -40,24 +49,24 @@ publishing {
 
             pom {
                 name = project.name
-                description = 'JiJ Utilities for handling mod candidates which are already in a jar..'
-                url = 'https://github.com/MinecraftForge/JIJUtils'
+                description = 'Jar in Jar Utilities including the required NIO FileSystems.'
+                url = 'https://github.com/MinecraftForge/JarJar'
 
                 scm {
-                    url = 'https://github.com/MinecraftForge/JIJUtils'
-                    connection = 'scm:git:git://github.com/MinecraftForge/JIJUtils.git'
-                    developerConnection = 'scm:git:git@github.com:MinecraftForge/JIJUtils.git'
+                    url = 'https://github.com/MinecraftForge/JarJar'
+                    connection = 'scm:git:git://github.com/MinecraftForge/JarJar.git'
+                    developerConnection = 'scm:git:git@github.com:MinecraftForge/JarJar.git'
                 }
 
                 issueManagement {
                     system = 'github'
-                    url = 'https://github.com/MinecraftForge/JIJUtils/issues'
+                    url = 'https://github.com/MinecraftForge/JarJar/issues'
                 }
 
                 licenses {
                     license {
                         name = 'LGPL 2.1'
-                        url = 'https://github.com/MinecraftForge/JIJUtils/blob/master/LICENSE.txt'
+                        url = 'https://github.com/MinecraftForge/JarJar/blob/main/LICENSE'
                         distribution = 'repo'
                     }
                 }
@@ -67,4 +76,8 @@ publishing {
     repositories {
         maven gradleutils.getPublishingForgeMaven()
     }
+}
+
+changelog {
+    fromTag '0.1'
 }
