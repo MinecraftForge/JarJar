@@ -5,7 +5,8 @@ plugins {
 }
 
 group = 'net.minecraftforge'
-version = gradleutils.getTagOffsetBranchVersion();
+version = gradleutils.getTagOffsetVersion()
+println('Version: ' + version)
 
 sourceSets {
     test {
