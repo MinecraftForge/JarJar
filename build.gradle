@@ -80,5 +80,5 @@ publishing {
 }
 
 changelog {
-    fromTag '0.1'
+    fromTag '0.2'
 }
