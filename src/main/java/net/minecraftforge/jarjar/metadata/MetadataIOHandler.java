@@ -2,8 +2,7 @@ package net.minecraftforge.jarjar.metadata;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import net.minecraftforge.jarjar.metadata.json.ArtifactVersionSerializer;
-import net.minecraftforge.jarjar.metadata.json.VersionRangeSerializer;
+import net.minecraftforge.jarjar.metadata.json.*;
 import org.apache.maven.artifact.versioning.ArtifactVersion;
 import org.apache.maven.artifact.versioning.VersionRange;
 import org.slf4j.Logger;
@@ -19,6 +18,9 @@ public class MetadataIOHandler
     private static final Gson GSON = new GsonBuilder()
                                        .registerTypeAdapter(VersionRange.class, new VersionRangeSerializer())
                                        .registerTypeAdapter(ArtifactVersion.class, new ArtifactVersionSerializer())
+                                       .registerTypeAdapter(ContainedJarIdentifier.class, new ContainedJarIdentifierSerializer())
+                                       .registerTypeAdapter(ContainedJarMetadata.class, new ContainedJarMetadataSerializer())
+                                       .registerTypeAdapter(Metadata.class, new MetadataSerializer())
                                        .setPrettyPrinting()
                                        .create();
 
