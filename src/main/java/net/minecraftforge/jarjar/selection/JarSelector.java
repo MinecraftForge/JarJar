@@ -3,10 +3,7 @@ package net.minecraftforge.jarjar.selection;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
-import net.minecraftforge.jarjar.metadata.ContainedJarIdentifier;
-import net.minecraftforge.jarjar.metadata.ContainedJarMetadata;
-import net.minecraftforge.jarjar.metadata.Metadata;
-import net.minecraftforge.jarjar.metadata.MetadataIOHandler;
+import net.minecraftforge.jarjar.metadata.*;
 import net.minecraftforge.jarjar.util.Constants;
 import org.apache.maven.artifact.versioning.VersionRange;
 import org.slf4j.Logger;
@@ -128,10 +125,6 @@ public final class JarSelector
                     }
                 }
             }
-            else
-            {
-                LOGGER.warn("The source jar: " + identificationProducer.apply(source) + " is supposed to contain a contained jars metadata but it does not exist.");
-            }
         }
 
         return containedJarMetadatasBySource;
@@ -157,6 +150,7 @@ public final class JarSelector
                      //Find the most agreeable version:
                      final VersionRange range = jars.stream()
                                                   .map(ContainedJarMetadata::version)
+                                                  .map(ContainedVersion::range)
                                                   .reduce(null, JarSelector::restrictRanges);
 
                      if (range == null) {
@@ -164,14 +158,14 @@ public final class JarSelector
                      }
 
                      if (!isValid(range)) {
-                         return Stream.empty();
+
                      }
 
                      if (range.getRecommendedVersion() != null) {
-                         return jars.stream().filter(jar -> jar.version().getRecommendedVersion().equals(range.getRecommendedVersion())).findFirst().stream();
+                         return jars.stream().filter(jar -> jar.version().artifactVersion().equals(range.getRecommendedVersion())).findFirst().stream();
                      }
 
-                     return jars.stream().filter(jar -> range.containsVersion(jar.version().getRecommendedVersion())).findFirst().stream();
+                     return jars.stream().filter(jar -> range.containsVersion(jar.version().artifactVersion())).findFirst().stream();
                  })
                  .collect(Collectors.toSet());
     }
