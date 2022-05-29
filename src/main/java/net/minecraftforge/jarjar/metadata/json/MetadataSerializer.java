@@ -18,7 +18,8 @@ public class MetadataSerializer implements JsonSerializer<Metadata>, JsonDeseria
         if (!json.isJsonObject())
             throw new JsonParseException("Expected object");
 
-        final List<ContainedJarMetadata> jars = context.deserialize(json, LIST_TOKEN.getType());
+        final JsonObject jsonObject = json.getAsJsonObject();
+        final List<ContainedJarMetadata> jars = context.deserialize(jsonObject.get("jars"), LIST_TOKEN.getType());
         return new Metadata(jars);
     }
 
