@@ -3,6 +3,7 @@ package net.minecraftforge.jarjar.metadata.json;
 import com.google.gson.*;
 import net.minecraftforge.jarjar.metadata.ContainedJarIdentifier;
 import net.minecraftforge.jarjar.metadata.ContainedJarMetadata;
+import net.minecraftforge.jarjar.metadata.ContainedVersion;
 import org.apache.maven.artifact.versioning.VersionRange;
 
 import java.lang.reflect.Type;
@@ -17,9 +18,9 @@ public class ContainedJarMetadataSerializer implements JsonSerializer<ContainedJ
 
         final JsonObject jsonObject = json.getAsJsonObject();
         final ContainedJarIdentifier containedJarIdentifier = context.deserialize(jsonObject.get("identifier"), ContainedJarIdentifier.class);
-        final VersionRange range = context.deserialize(jsonObject.get("version"), VersionRange.class);
+        final ContainedVersion version = context.deserialize(jsonObject.get("version"), ContainedVersion.class);
         final String path = jsonObject.get("path").getAsString();
-        return new ContainedJarMetadata(containedJarIdentifier, range, path);
+        return new ContainedJarMetadata(containedJarIdentifier, version, path);
     }
 
     @Override
@@ -27,7 +28,7 @@ public class ContainedJarMetadataSerializer implements JsonSerializer<ContainedJ
     {
         final JsonObject jsonObject = new JsonObject();
         jsonObject.add("identifier", context.serialize(src.identifier()));
-        jsonObject.add("range", context.serialize(src.version()));
+        jsonObject.add("version", context.serialize(src.version()));
         jsonObject.add("path", new JsonPrimitive(src.path()));
         return jsonObject;
     }

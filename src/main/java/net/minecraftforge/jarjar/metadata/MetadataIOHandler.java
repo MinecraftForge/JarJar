@@ -12,7 +12,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Optional;
 
-public class MetadataIOHandler
+public final class MetadataIOHandler
 {
     private static final Logger LOGGER = LoggerFactory.getLogger(MetadataIOHandler.class);
     private static final Gson GSON = new GsonBuilder()
@@ -20,6 +20,7 @@ public class MetadataIOHandler
                                        .registerTypeAdapter(ArtifactVersion.class, new ArtifactVersionSerializer())
                                        .registerTypeAdapter(ContainedJarIdentifier.class, new ContainedJarIdentifierSerializer())
                                        .registerTypeAdapter(ContainedJarMetadata.class, new ContainedJarMetadataSerializer())
+                                       .registerTypeAdapter(ContainedVersion.class, new ContainedVersionSerializer())
                                        .registerTypeAdapter(Metadata.class, new MetadataSerializer())
                                        .setPrettyPrinting()
                                        .create();
