@@ -1,8 +1,6 @@
 package net.minecraftforge.jarjar.selection;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Multimaps;
+import com.google.common.collect.*;
 import net.minecraftforge.jarjar.metadata.*;
 import net.minecraftforge.jarjar.util.Constants;
 import org.apache.maven.artifact.versioning.VersionRange;
@@ -15,7 +13,6 @@ import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public final class JarSelector
 {
@@ -26,24 +23,53 @@ public final class JarSelector
         throw new IllegalStateException("Can not instantiate an instance of: JarSelector. This is a utility class");
     }
 
-    public static <T> List<T> detectAndSelect(
+    public static <T, E extends Throwable> List<T> detectAndSelect(
       final List<T> source,
       final BiFunction<T, Path, Optional<InputStream>> resourceReader,
       final BiFunction<T, Path, Optional<T>> sourceProducer,
-      final Function<T, String> identificationProducer
-    ) {
-        final Map<ContainedJarMetadata, T> detectedJarsBySource = detect(source, resourceReader, sourceProducer, identificationProducer);
-        final Set<ContainedJarMetadata> select = select(detectedJarsBySource.keySet());
-        return select.stream().filter(detectedJarsBySource::containsKey).map(selectedJarMetadata -> {
-            final T sourceOfJar = detectedJarsBySource.get(selectedJarMetadata);
-            return sourceProducer.apply(sourceOfJar, Path.of(selectedJarMetadata.path()));
-        })
+      final Function<T, String> identificationProducer,
+      final Function<Multimap<ContainedJarIdentifier, T>, E> failureExceptionProducer
+    ) throws E
+    {
+        final Set<DetectionResult<T>> detectedMetadata = detect(source, resourceReader, sourceProducer, identificationProducer);
+        final Map<ContainedJarMetadata, T> detectedJarsBySource = detectedMetadata.stream().collect(Collectors.toMap(DetectionResult::metadata, DetectionResult::source));
+        final Map<ContainedJarMetadata, T> detectedJarsByRootSource = detectedMetadata.stream().collect(Collectors.toMap(DetectionResult::metadata, DetectionResult::rootSource));
+        final Multimap<ContainedJarIdentifier, ContainedJarMetadata> metadataByIdentifier = Multimaps.index(detectedJarsByRootSource.keySet(), ContainedJarMetadata::identifier);
+
+        final Set<SelectionResult> select = select(detectedJarsBySource.keySet());
+
+        if (select.stream().anyMatch(result -> result.selected().isEmpty()))
+        {
+            //We have entered into failure territory. Let's collect all of those that failed
+            final Set<SelectionResult> failed = select.stream().filter(result -> result.selected().isEmpty()).collect(Collectors.toSet());
+            final Set<ContainedJarIdentifier> failedIdentifiers = failed.stream().map(SelectionResult::identifier).collect(Collectors.toSet());
+
+            final Multimap<ContainedJarIdentifier, T> failedSources = HashMultimap.create();
+            for (final ContainedJarIdentifier failedIdentifier : failedIdentifiers)
+            {
+                failedSources.putAll(failedIdentifier, metadataByIdentifier.get(failedIdentifier).stream().map(detectedJarsByRootSource::get).collect(Collectors.toSet()));
+            }
+
+            final E exception = failureExceptionProducer.apply(failedSources);
+            LOGGER.error("Failed to select jars for {}", failedIdentifiers);
+            throw exception;
+        }
+
+        return select.stream()
+                 .map(SelectionResult::selected)
+                 .filter(Optional::isPresent)
+                 .map(Optional::get)
+                 .filter(detectedJarsBySource::containsKey)
+                 .map(selectedJarMetadata -> {
+                     final T sourceOfJar = detectedJarsBySource.get(selectedJarMetadata);
+                     return sourceProducer.apply(sourceOfJar, Path.of(selectedJarMetadata.path()));
+                 })
                  .filter(Optional::isPresent)
                  .map(Optional::get)
                  .collect(Collectors.toList());
     }
 
-    private static <T> Map<ContainedJarMetadata, T> detect(
+    private static <T> Set<DetectionResult<T>> detect(
       final List<T> source,
       final BiFunction<T, Path, Optional<InputStream>> resourceReader,
       final BiFunction<T, Path, Optional<T>> sourceProducer,
@@ -58,46 +84,48 @@ public final class JarSelector
         );
 
         record SourceWithOptionalMetadata<Z>(Z source, Optional<Metadata> metadata) {}
-        final Map<T, Metadata> metadataBySource = metadataInputStreamsBySource.entrySet().stream()
-                                                    .filter(kvp -> kvp.getValue().isPresent())
-                                                    .map(kvp -> new SourceWithOptionalMetadata<>(kvp.getKey(), MetadataIOHandler.fromStream(kvp.getValue().get())))
-                                                    .filter(sourceWithOptionalMetadata -> sourceWithOptionalMetadata.metadata().isPresent())
-                                                    .collect(
-                                                      Collectors.toMap(
-                                                        SourceWithOptionalMetadata::source,
-                                                        sourceWithOptionalMetadata -> sourceWithOptionalMetadata.metadata().get()
-                                                      )
-                                                    );
+        final Map<T, Metadata> rootMetadataBySource = metadataInputStreamsBySource.entrySet().stream()
+                                                        .filter(kvp -> kvp.getValue().isPresent())
+                                                        .map(kvp -> new SourceWithOptionalMetadata<>(kvp.getKey(), MetadataIOHandler.fromStream(kvp.getValue().get())))
+                                                        .filter(sourceWithOptionalMetadata -> sourceWithOptionalMetadata.metadata().isPresent())
+                                                        .collect(
+                                                          Collectors.toMap(
+                                                            SourceWithOptionalMetadata::source,
+                                                            sourceWithOptionalMetadata -> sourceWithOptionalMetadata.metadata().get()
+                                                          )
+                                                        );
 
-        final Multimap<T, ContainedJarMetadata> containedJarMetadatasBySource = recursivelyDetectContainedJars(metadataBySource,
+        return recursivelyDetectContainedJars(
+          rootMetadataBySource,
           resourceReader,
           sourceProducer,
-          identificationProducer);
-        return containedJarMetadatasBySource.entries().stream()
-                                                                             .collect(
-                                                                               Collectors.toMap(
-                                                                                 Map.Entry::getValue,
-                                                                                 Map.Entry::getKey
-                                                                               )
-                                                                             );
+          identificationProducer
+        );
     }
 
-    private static <T> Multimap<T, ContainedJarMetadata> recursivelyDetectContainedJars(
-      final Map<T, Metadata> metadataBySource,
+    private static <T> Set<DetectionResult<T>> recursivelyDetectContainedJars(
+      final Map<T, Metadata> rootMetadataBySource,
       final BiFunction<T, Path, Optional<InputStream>> resourceReader,
       final BiFunction<T, Path, Optional<T>> sourceProducer,
       final Function<T, String> identificationProducer)
     {
-        final Multimap<T, ContainedJarMetadata> containedJarMetadatasBySource = HashMultimap.create();
+        //final Multimap<T, ContainedJarMetadata> containedJarMetadatasBySource = HashMultimap.create();
+        final Set<DetectionResult<T>> results = Sets.newHashSet();
+        final Map<T, T> rootSourcesBySource = Maps.newHashMap();
+
         final Queue<T> sourcesToProcess = new LinkedList<>();
-        for (final Map.Entry<T, Metadata> entry : metadataBySource.entrySet())
+        for (final Map.Entry<T, Metadata> entry : rootMetadataBySource.entrySet())
         {
-            containedJarMetadatasBySource.putAll(entry.getKey(), entry.getValue().jars());
+            entry.getValue().jars().stream().map(containedJarMetadata -> new DetectionResult<>(containedJarMetadata, entry.getKey(), entry.getKey()))
+              .forEach(results::add);
+
             for (final ContainedJarMetadata jar : entry.getValue().jars())
             {
                 final Optional<T> source = sourceProducer.apply(entry.getKey(), Path.of(jar.path()));
-                if (source.isPresent()) {
+                if (source.isPresent())
+                {
                     sourcesToProcess.add(source.get());
+                    rootSourcesBySource.put(source.get(), entry.getKey());
                 }
                 else
                 {
@@ -106,17 +134,26 @@ public final class JarSelector
             }
         }
 
-        while(!sourcesToProcess.isEmpty()) {
+        while (!sourcesToProcess.isEmpty())
+        {
             final T source = sourcesToProcess.remove();
+            final T rootSource = rootSourcesBySource.get(source);
             final Optional<InputStream> metadataInputStream = resourceReader.apply(source, Path.of(Constants.CONTAINED_JARS_METADATA_PATH));
-            if (metadataInputStream.isPresent()) {
+            if (metadataInputStream.isPresent())
+            {
                 final Optional<Metadata> metadata = MetadataIOHandler.fromStream(metadataInputStream.get());
-                if (metadata.isPresent()) {
-                    containedJarMetadatasBySource.putAll(source, metadata.get().jars());
-                    for (final ContainedJarMetadata jar : metadata.get().jars()) {
+                if (metadata.isPresent())
+                {
+                    metadata.get().jars().stream().map(containedJarMetadata -> new DetectionResult<>(containedJarMetadata, source, rootSource))
+                      .forEach(results::add);
+
+                    for (final ContainedJarMetadata jar : metadata.get().jars())
+                    {
                         final Optional<T> sourceJar = sourceProducer.apply(source, Path.of(jar.path()));
-                        if (sourceJar.isPresent()) {
+                        if (sourceJar.isPresent())
+                        {
                             sourcesToProcess.add(sourceJar.get());
+                            rootSourcesBySource.put(sourceJar.get(), rootSource);
                         }
                         else
                         {
@@ -127,24 +164,28 @@ public final class JarSelector
             }
         }
 
-        return containedJarMetadatasBySource;
+        return results;
     }
 
-    private static Set<ContainedJarMetadata> select(final Set<ContainedJarMetadata> containedJarMetadata) {
+    private static Set<SelectionResult> select(final Set<ContainedJarMetadata> containedJarMetadata)
+    {
         final Multimap<ContainedJarIdentifier, ContainedJarMetadata> jarsByIdentifier = containedJarMetadata.stream()
-                                                                                   .collect(
-                                                                                     Multimaps.toMultimap(
-                                                                                       ContainedJarMetadata::identifier,
-                                                                                       Function.identity(),
-                                                                                       HashMultimap::create
-                                                                                     )
-                                                                                   );
+                                                                                          .collect(
+                                                                                            Multimaps.toMultimap(
+                                                                                              ContainedJarMetadata::identifier,
+                                                                                              Function.identity(),
+                                                                                              HashMultimap::create
+                                                                                            )
+                                                                                          );
+
         return jarsByIdentifier.keySet().stream()
-                 .map(jarsByIdentifier::get)
-                 .flatMap(jars -> {
-                     if (jars.size() <= 1) {
+                 .map(identifier -> {
+                     final Collection<ContainedJarMetadata> jars = jarsByIdentifier.get(identifier);
+
+                     if (jars.size() <= 1)
+                     {
                          //Quick return:
-                         return jars.stream();
+                         return new SelectionResult(identifier, jars, Optional.of(jars.iterator().next()));
                      }
 
                      //Find the most agreeable version:
@@ -153,38 +194,45 @@ public final class JarSelector
                                                   .map(ContainedVersion::range)
                                                   .reduce(null, JarSelector::restrictRanges);
 
-                     if (range == null) {
-                         return Stream.empty();
+                     if (range == null || !isValid(range))
+                     {
+                         return new SelectionResult(identifier, jars, Optional.empty());
                      }
 
-                     if (!isValid(range)) {
-
+                     if (range.getRecommendedVersion() != null)
+                     {
+                         final Optional<ContainedJarMetadata> selected =
+                           jars.stream().filter(jar -> jar.version().artifactVersion().equals(range.getRecommendedVersion())).findFirst();
+                         return new SelectionResult(identifier, jars, selected);
                      }
 
-                     if (range.getRecommendedVersion() != null) {
-                         return jars.stream().filter(jar -> jar.version().artifactVersion().equals(range.getRecommendedVersion())).findFirst().stream();
-                     }
-
-                     return jars.stream().filter(jar -> range.containsVersion(jar.version().artifactVersion())).findFirst().stream();
+                     final Optional<ContainedJarMetadata> selected = jars.stream().filter(jar -> range.containsVersion(jar.version().artifactVersion())).findFirst();
+                     return new SelectionResult(identifier, jars, selected);
                  })
                  .collect(Collectors.toSet());
     }
 
-
     private static VersionRange restrictRanges(final VersionRange versionRange, final VersionRange versionRange2)
     {
-        if (versionRange == null) {
+        if (versionRange == null)
+        {
             return versionRange2;
         }
 
-        if (versionRange2 == null) {
+        if (versionRange2 == null)
+        {
             return versionRange;
         }
 
         return versionRange.restrict(versionRange);
     }
 
-    private static boolean isValid(final VersionRange range) {
+    private static boolean isValid(final VersionRange range)
+    {
         return range.getRecommendedVersion() == null && !range.hasRestrictions();
     }
+
+    private record DetectionResult<Z>(ContainedJarMetadata metadata, Z source, Z rootSource) {}
+
+    private record SelectionResult(ContainedJarIdentifier identifier, Collection<ContainedJarMetadata> candidates, Optional<ContainedJarMetadata> selected) {}
 }
