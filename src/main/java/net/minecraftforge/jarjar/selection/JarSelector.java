@@ -28,7 +28,7 @@ public final class JarSelector
       final BiFunction<T, Path, Optional<InputStream>> resourceReader,
       final BiFunction<T, Path, Optional<T>> sourceProducer,
       final Function<T, String> identificationProducer,
-      final Function<Multimap<ContainedJarIdentifier, T>, E> failureExceptionProducer
+      final Function<Multimap<ContainedJarIdentifier, SourceWithRequestedVersionRange<T>>, E> failureExceptionProducer
     ) throws E
     {
         final Set<DetectionResult<T>> detectedMetadata = detect(source, resourceReader, sourceProducer, identificationProducer);
@@ -44,10 +44,17 @@ public final class JarSelector
             final Set<SelectionResult> failed = select.stream().filter(result -> result.selected().isEmpty()).collect(Collectors.toSet());
             final Set<ContainedJarIdentifier> failedIdentifiers = failed.stream().map(SelectionResult::identifier).collect(Collectors.toSet());
 
-            final Multimap<ContainedJarIdentifier, T> failedSources = HashMultimap.create();
+            final Multimap<ContainedJarIdentifier, SourceWithRequestedVersionRange<T>> failedSources = HashMultimap.create();
             for (final ContainedJarIdentifier failedIdentifier : failedIdentifiers)
             {
-                failedSources.putAll(failedIdentifier, metadataByIdentifier.get(failedIdentifier).stream().map(detectedJarsByRootSource::get).collect(Collectors.toSet()));
+                final Collection<ContainedJarMetadata> metadata = metadataByIdentifier.get(failedIdentifier);
+                final Set<SourceWithRequestedVersionRange<T>> sources = metadata.stream().map(containedJarMetadata -> {
+                    final T rootSource = detectedJarsByRootSource.get(containedJarMetadata);
+                    return new SourceWithRequestedVersionRange<T>(rootSource, containedJarMetadata.version().range());
+                })
+                                                                                           .collect(Collectors.toSet());
+
+                failedSources.putAll(failedIdentifier, sources);
             }
 
             final E exception = failureExceptionProducer.apply(failedSources);
@@ -235,4 +242,6 @@ public final class JarSelector
     private record DetectionResult<Z>(ContainedJarMetadata metadata, Z source, Z rootSource) {}
 
     private record SelectionResult(ContainedJarIdentifier identifier, Collection<ContainedJarMetadata> candidates, Optional<ContainedJarMetadata> selected) {}
+
+    public record SourceWithRequestedVersionRange<Z>(Z source, VersionRange requestedVersionRange) {}
 }
