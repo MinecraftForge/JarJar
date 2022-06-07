@@ -4,7 +4,6 @@ import com.google.gson.*;
 import net.minecraftforge.jarjar.metadata.ContainedJarIdentifier;
 import net.minecraftforge.jarjar.metadata.ContainedJarMetadata;
 import net.minecraftforge.jarjar.metadata.ContainedVersion;
-import org.apache.maven.artifact.versioning.VersionRange;
 
 import java.lang.reflect.Type;
 
@@ -20,7 +19,11 @@ public class ContainedJarMetadataSerializer implements JsonSerializer<ContainedJ
         final ContainedJarIdentifier containedJarIdentifier = context.deserialize(jsonObject.get("identifier"), ContainedJarIdentifier.class);
         final ContainedVersion version = context.deserialize(jsonObject.get("version"), ContainedVersion.class);
         final String path = jsonObject.get("path").getAsString();
-        return new ContainedJarMetadata(containedJarIdentifier, version, path);
+        boolean isObfuscated = false;
+        if (jsonObject.has("isObfuscated"))
+            isObfuscated = jsonObject.get("isObfuscated").getAsBoolean();
+
+        return new ContainedJarMetadata(containedJarIdentifier, version, path, isObfuscated);
     }
 
     @Override
@@ -30,6 +33,7 @@ public class ContainedJarMetadataSerializer implements JsonSerializer<ContainedJ
         jsonObject.add("identifier", context.serialize(src.identifier()));
         jsonObject.add("version", context.serialize(src.version()));
         jsonObject.add("path", new JsonPrimitive(src.path()));
+        jsonObject.add("isObfuscated", new JsonPrimitive(src.isObfuscated()));
         return jsonObject;
     }
 }
