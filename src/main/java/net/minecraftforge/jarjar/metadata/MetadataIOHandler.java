@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.Arrays;
 import java.util.Optional;
 
 public final class MetadataIOHandler
@@ -37,5 +38,9 @@ public final class MetadataIOHandler
             LOGGER.error("Failed to parse metadata", e);
             return Optional.empty();
         }
+    }
+
+    public static Iterable<String> toLines(final Metadata metadata) {
+        return Arrays.asList(GSON.toJson(metadata).split("\n"));
     }
 }
