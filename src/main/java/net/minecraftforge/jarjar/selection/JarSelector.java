@@ -8,7 +8,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.InputStream;
+import java.nio.file.FileSystems;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -38,10 +40,10 @@ public final class JarSelector
 
         final Set<SelectionResult> select = select(detectedJarsBySource.keySet());
 
-        if (select.stream().anyMatch(result -> result.selected().isEmpty()))
+        if (select.stream().anyMatch(result -> !result.selected().isPresent()))
         {
             //We have entered into failure territory. Let's collect all of those that failed
-            final Set<SelectionResult> failed = select.stream().filter(result -> result.selected().isEmpty()).collect(Collectors.toSet());
+            final Set<SelectionResult> failed = select.stream().filter(result -> !result.selected().isPresent()).collect(Collectors.toSet());
             final Set<ContainedJarIdentifier> failedIdentifiers = failed.stream().map(SelectionResult::identifier).collect(Collectors.toSet());
 
             final Multimap<ContainedJarIdentifier, SourceWithRequestedVersionRange<T>> failedSources = HashMultimap.create();
@@ -69,7 +71,7 @@ public final class JarSelector
                  .filter(detectedJarsBySource::containsKey)
                  .map(selectedJarMetadata -> {
                      final T sourceOfJar = detectedJarsBySource.get(selectedJarMetadata);
-                     return sourceProducer.apply(sourceOfJar, Path.of(selectedJarMetadata.path()));
+                     return sourceProducer.apply(sourceOfJar, Paths.get(selectedJarMetadata.path()));
                  })
                  .filter(Optional::isPresent)
                  .map(Optional::get)
@@ -82,7 +84,7 @@ public final class JarSelector
       final BiFunction<T, Path, Optional<T>> sourceProducer,
       final Function<T, String> identificationProducer)
     {
-        final Path metadataPath = Path.of(Constants.CONTAINED_JARS_METADATA_PATH);
+        final Path metadataPath = Paths.get(Constants.CONTAINED_JARS_METADATA_PATH);
         final Map<T, Optional<InputStream>> metadataInputStreamsBySource = source.stream().collect(
           Collectors.toMap(
             Function.identity(),
@@ -90,7 +92,7 @@ public final class JarSelector
           )
         );
 
-        record SourceWithOptionalMetadata<Z>(Z source, Optional<Metadata> metadata) {}
+
         final Map<T, Metadata> rootMetadataBySource = metadataInputStreamsBySource.entrySet().stream()
                                                         .filter(kvp -> kvp.getValue().isPresent())
                                                         .map(kvp -> new SourceWithOptionalMetadata<>(kvp.getKey(), MetadataIOHandler.fromStream(kvp.getValue().get())))
@@ -128,7 +130,7 @@ public final class JarSelector
 
             for (final ContainedJarMetadata jar : entry.getValue().jars())
             {
-                final Optional<T> source = sourceProducer.apply(entry.getKey(), Path.of(jar.path()));
+                final Optional<T> source = sourceProducer.apply(entry.getKey(), Paths.get(jar.path()));
                 if (source.isPresent())
                 {
                     sourcesToProcess.add(source.get());
@@ -145,7 +147,7 @@ public final class JarSelector
         {
             final T source = sourcesToProcess.remove();
             final T rootSource = rootSourcesBySource.get(source);
-            final Optional<InputStream> metadataInputStream = resourceReader.apply(source, Path.of(Constants.CONTAINED_JARS_METADATA_PATH));
+            final Optional<InputStream> metadataInputStream = resourceReader.apply(source, Paths.get(Constants.CONTAINED_JARS_METADATA_PATH));
             if (metadataInputStream.isPresent())
             {
                 final Optional<Metadata> metadata = MetadataIOHandler.fromStream(metadataInputStream.get());
@@ -156,7 +158,7 @@ public final class JarSelector
 
                     for (final ContainedJarMetadata jar : metadata.get().jars())
                     {
-                        final Optional<T> sourceJar = sourceProducer.apply(source, Path.of(jar.path()));
+                        final Optional<T> sourceJar = sourceProducer.apply(source, Paths.get(jar.path()));
                         if (sourceJar.isPresent())
                         {
                             sourcesToProcess.add(sourceJar.get());
@@ -239,9 +241,180 @@ public final class JarSelector
         return range.getRecommendedVersion() == null && !range.hasRestrictions();
     }
 
-    private record DetectionResult<Z>(ContainedJarMetadata metadata, Z source, Z rootSource) {}
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+    private static final class SourceWithOptionalMetadata<Z>
+    {
+        private final Z source;
+        private final Optional<Metadata> metadata;
 
-    private record SelectionResult(ContainedJarIdentifier identifier, Collection<ContainedJarMetadata> candidates, Optional<ContainedJarMetadata> selected) {}
+        SourceWithOptionalMetadata(Z source, Optional<Metadata> metadata)
+        {
+            this.source = source;
+            this.metadata = metadata;
+        }
 
-    public record SourceWithRequestedVersionRange<Z>(Z source, VersionRange requestedVersionRange) {}
+        public Z source() {return source;}
+
+        public Optional<Metadata> metadata() {return metadata;}
+
+        @SuppressWarnings("rawtypes")
+        @Override
+        public boolean equals(Object obj)
+        {
+            if (obj == this) return true;
+            if (obj == null || obj.getClass() != this.getClass()) return false;
+            final SourceWithOptionalMetadata that = (SourceWithOptionalMetadata) obj;
+            return Objects.equals(this.source, that.source) &&
+                     Objects.equals(this.metadata, that.metadata);
+        }
+
+        @Override
+        public int hashCode()
+        {
+            return Objects.hash(source, metadata);
+        }
+
+        @Override
+        public String toString()
+        {
+            return "SourceWithOptionalMetadata[" +
+                     "source=" + source + ", " +
+                     "metadata=" + metadata + ']';
+        }
+    }
+
+    private static final class DetectionResult<Z>
+    {
+        private final ContainedJarMetadata metadata;
+        private final Z source;
+        private final Z rootSource;
+
+        private DetectionResult(ContainedJarMetadata metadata, Z source, Z rootSource)
+        {
+            this.metadata = metadata;
+            this.source = source;
+            this.rootSource = rootSource;
+        }
+
+        public ContainedJarMetadata metadata() {return metadata;}
+
+        public Z source() {return source;}
+
+        public Z rootSource() {return rootSource;}
+
+        @SuppressWarnings("rawtypes")
+        @Override
+        public boolean equals(Object obj)
+        {
+            if (obj == this) return true;
+            if (obj == null || obj.getClass() != this.getClass()) return false;
+            final DetectionResult that = (DetectionResult) obj;
+            return Objects.equals(this.metadata, that.metadata) &&
+                     Objects.equals(this.source, that.source) &&
+                     Objects.equals(this.rootSource, that.rootSource);
+        }
+
+        @Override
+        public int hashCode()
+        {
+            return Objects.hash(metadata, source, rootSource);
+        }
+
+        @Override
+        public String toString()
+        {
+            return "DetectionResult[" +
+                     "metadata=" + metadata + ", " +
+                     "source=" + source + ", " +
+                     "rootSource=" + rootSource + ']';
+        }
+    }
+
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+    private static final class SelectionResult
+    {
+        private final ContainedJarIdentifier identifier;
+        private final Collection<ContainedJarMetadata> candidates;
+        private final Optional<ContainedJarMetadata>   selected;
+
+        private SelectionResult(ContainedJarIdentifier identifier, Collection<ContainedJarMetadata> candidates, Optional<ContainedJarMetadata> selected)
+        {
+            this.identifier = identifier;
+            this.candidates = candidates;
+            this.selected = selected;
+        }
+
+        public ContainedJarIdentifier identifier() {return identifier;}
+
+        public Collection<ContainedJarMetadata> candidates() {return candidates;}
+
+        public Optional<ContainedJarMetadata> selected() {return selected;}
+
+        @Override
+        public boolean equals(Object obj)
+        {
+            if (obj == this) return true;
+            if (obj == null || obj.getClass() != this.getClass()) return false;
+            final SelectionResult that = (SelectionResult) obj;
+            return Objects.equals(this.identifier, that.identifier) &&
+                     Objects.equals(this.candidates, that.candidates) &&
+                     Objects.equals(this.selected, that.selected);
+        }
+
+        @Override
+        public int hashCode()
+        {
+            return Objects.hash(identifier, candidates, selected);
+        }
+
+        @Override
+        public String toString()
+        {
+            return "SelectionResult[" +
+                     "identifier=" + identifier + ", " +
+                     "candidates=" + candidates + ", " +
+                     "selected=" + selected + ']';
+        }
+    }
+
+    public static final class SourceWithRequestedVersionRange<Z>
+    {
+        private final Z source;
+        private final VersionRange requestedVersionRange;
+
+        public SourceWithRequestedVersionRange(Z source, VersionRange requestedVersionRange)
+        {
+            this.source = source;
+            this.requestedVersionRange = requestedVersionRange;
+        }
+
+        public Z source() {return source;}
+
+        public VersionRange requestedVersionRange() {return requestedVersionRange;}
+
+        @SuppressWarnings("rawtypes")
+        @Override
+        public boolean equals(Object obj)
+        {
+            if (obj == this) return true;
+            if (obj == null || obj.getClass() != this.getClass()) return false;
+            final SourceWithRequestedVersionRange that = (SourceWithRequestedVersionRange) obj;
+            return Objects.equals(this.source, that.source) &&
+                     Objects.equals(this.requestedVersionRange, that.requestedVersionRange);
+        }
+
+        @Override
+        public int hashCode()
+        {
+            return Objects.hash(source, requestedVersionRange);
+        }
+
+        @Override
+        public String toString()
+        {
+            return "SourceWithRequestedVersionRange[" +
+                     "source=" + source + ", " +
+                     "requestedVersionRange=" + requestedVersionRange + ']';
+        }
+    }
 }

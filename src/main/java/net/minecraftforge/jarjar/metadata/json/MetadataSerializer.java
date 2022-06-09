@@ -10,7 +10,7 @@ import java.util.List;
 
 public class MetadataSerializer implements JsonSerializer<Metadata>, JsonDeserializer<Metadata>
 {
-    private static final TypeToken<List<ContainedJarMetadata>> LIST_TOKEN = new TypeToken<>() {};
+    private static final TypeToken<List<ContainedJarMetadata>> LIST_TOKEN = new TypeToken<List<ContainedJarMetadata>>() {};
 
     @Override
     public Metadata deserialize(final JsonElement json, final Type typeOfT, final JsonDeserializationContext context) throws JsonParseException

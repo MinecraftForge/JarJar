@@ -1,5 +1,7 @@
 package net.minecraftforge.jarjar.nio.pathfs;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import net.minecraftforge.jarjar.util.LambdaExceptionUtils;
 import net.minecraftforge.jarjar.util.Lazy;
 
@@ -35,7 +37,7 @@ public class PathFileSystem extends FileSystem
         this.innerSystem = Lazy.of(() -> {
             try
             {
-                return FileSystems.newFileSystem(target);
+                return FileSystems.newFileSystem(target, this.getClass().getClassLoader());
             }
             catch (Exception e)
             {
@@ -121,13 +123,13 @@ public class PathFileSystem extends FileSystem
     @Override
     public Iterable<FileStore> getFileStores()
     {
-        return List.of();
+        return ImmutableList.of();
     }
 
     @Override
     public Set<String> supportedFileAttributeViews()
     {
-        return Set.of("basic");
+        return ImmutableSet.of("basic");
     }
 
     public SeekableByteChannel newByteChannel(final Path path, final Set<? extends OpenOption> options, final FileAttribute<?>... attrs) throws IOException
@@ -160,7 +162,7 @@ public class PathFileSystem extends FileSystem
     {
         if (more.length > 0)
         {
-            var args = new String[more.length + 1];
+            final String[] args = new String[more.length + 1];
             args[0] = first;
             System.arraycopy(more, 0, args, 1, more.length);
 

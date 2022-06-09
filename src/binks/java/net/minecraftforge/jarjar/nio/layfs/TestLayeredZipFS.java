@@ -1,14 +1,12 @@
 package net.minecraftforge.jarjar.nio.layfs;
 
+import com.google.common.collect.ImmutableList;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.file.FileSystem;
-import java.nio.file.FileSystems;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.nio.file.*;
 import java.util.HashMap;
 import java.util.List;
 
@@ -29,7 +27,7 @@ public class TestLayeredZipFS
 
         final Path pathInText = zipFS.getPath("masktest.txt");
         final List<String> lines = Files.readAllLines(pathInText);
-        final List<String> sourceLines = List.of("dir1");
+        final List<String> sourceLines = ImmutableList.of("dir1");
 
         assertIterableEquals(sourceLines, lines);
     }
@@ -38,7 +36,7 @@ public class TestLayeredZipFS
     public void testUriConversion() throws URISyntaxException, IOException {
         final URI filePathUri = new URI(
           "jij:" +
-            (Path.of("src/binks/resources/dir_in_dir_in_dir.zip").toAbsolutePath()
+            (Paths.get("src/binks/resources/dir_in_dir_in_dir.zip").toAbsolutePath()
                .toUri().getRawSchemeSpecificPart())
             + "!/dir_in_dir.zip!/dir1.zip!/"
         ).normalize();
@@ -63,7 +61,7 @@ public class TestLayeredZipFS
 
         final URI expectedUri = new URI(
           "jij:" +
-            (Path.of("src/binks/resources/dir_in_dir_in_dir.zip").toAbsolutePath()
+            (Paths.get("src/binks/resources/dir_in_dir_in_dir.zip").toAbsolutePath()
               .toUri().getRawSchemeSpecificPart())
             + "!/dir_in_dir.zip!/dir1.zip!/"
         ).normalize();

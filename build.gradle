@@ -32,6 +32,13 @@ java {
     withSourcesJar()
 }
 
+project.tasks.withType(JavaCompile).all {
+    JavaToolchainService service = getProject().getExtensions().getByType(JavaToolchainService.class);
+    Provider<JavaCompiler> compiler = service.compilerFor(s -> s.getLanguageVersion().set(JavaLanguageVersion.of(8)));
+
+    it.javaCompiler = compiler;
+}
+
 dependencies {
     api group: 'org.apache.maven', name: 'maven-artifact', version: "${apacheMavenVersion}"
     api group: 'com.google.code.gson', name: 'gson', version: "${gsonVersion}"

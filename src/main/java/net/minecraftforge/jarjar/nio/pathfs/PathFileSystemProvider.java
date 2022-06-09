@@ -32,12 +32,12 @@ public class PathFileSystemProvider extends FileSystemProvider {
     @Override
     public FileSystem newFileSystem(final URI uri, final Map<String, ?> env) throws IOException {
         @SuppressWarnings("unchecked")
-        var packagePath = ((Map<String, Path>)env).getOrDefault("packagePath", null);
+        final Path packagePath = ((Map<String, Path>)env).getOrDefault("packagePath", null);
 
         if (packagePath == null)
             throw new UnsupportedOperationException("Missing packagePath");
 
-        var key = makeKey(uri);
+        final String key = makeKey(uri);
 
         if (this.fileSystems.containsKey(key))
             return this.fileSystems.get(key);
@@ -59,12 +59,12 @@ public class PathFileSystemProvider extends FileSystemProvider {
     @Override
     public FileSystem newFileSystem(final Path path, final Map<String, ?> env) throws IOException {
         @SuppressWarnings("unchecked")
-        var packagePath = ((Map<String, Path>)env).getOrDefault("packagePath", null);
+        final Path packagePath = ((Map<String, Path>)env).getOrDefault("packagePath", null);
 
         if (packagePath == null)
             throw new UnsupportedOperationException("Missing packagePath");
 
-        var key = makeKey(path);
+        final String key = makeKey(path);
         try {
             return newFileSystemInternal(key, packagePath);
         } catch (UncheckedIOException e) {
@@ -74,15 +74,15 @@ public class PathFileSystemProvider extends FileSystemProvider {
 
     public PathFileSystem newFileSystem(final Path path) {
         if (path == null) throw new IllegalArgumentException("Path is null");
-        var key = makeKey(path);
+        final String key = makeKey(path);
         return newFileSystemInternal(key, path);
     }
 
     private PathFileSystem newFileSystemInternal(final String key, final Path path) {
-        var normalizedPath = path.toAbsolutePath().normalize();
+        final Path normalizedPath = path.toAbsolutePath().normalize();
 
         synchronized (fileSystems) {
-            var ufs = new PathFileSystem(this, key, normalizedPath);
+            final PathFileSystem ufs = new PathFileSystem(this, key, normalizedPath);
             fileSystems.put(key, ufs);
             return ufs;
         }
@@ -102,7 +102,7 @@ public class PathFileSystemProvider extends FileSystemProvider {
 
     @Override
     public Path getPath(final URI uri) {
-        var parts = uri.getRawSchemeSpecificPart().split("~");
+        final String[] parts = uri.getRawSchemeSpecificPart().split("~");
         if (parts.length > 1) {
             return getFileSystem(uri).getPath(parts[1]);
         } else {
@@ -112,14 +112,15 @@ public class PathFileSystemProvider extends FileSystemProvider {
 
     @Override
     public FileSystem getFileSystem(final URI uri) {
-        var parts = uri.getRawSchemeSpecificPart().split("~");
+        final String[] parts = uri.getRawSchemeSpecificPart().split("~");
         if (!fileSystems.containsKey(parts[0])) throw new FileSystemNotFoundException();
         return fileSystems.get(parts[0]);
     }
 
     @Override
     public SeekableByteChannel newByteChannel(final Path path, final Set<? extends OpenOption> options, final FileAttribute<?>... attrs) throws IOException {
-        if (path instanceof PathPath up) {
+        if (path instanceof PathPath) {
+            final PathPath up = (PathPath) path;
             return up.getFileSystem().newByteChannel(path, options, attrs);
         }
         throw new UnsupportedOperationException();
@@ -127,7 +128,8 @@ public class PathFileSystemProvider extends FileSystemProvider {
 
     @Override
     public DirectoryStream<Path> newDirectoryStream(final Path dir, final DirectoryStream.Filter<? super Path> filter) throws IOException {
-        if (dir instanceof PathPath up) {
+        if (dir instanceof PathPath) {
+            final PathPath up = (PathPath) dir;
             return up.getFileSystem().newDirectoryStream(dir, filter);
         }
         throw new UnsupportedOperationException();
@@ -180,7 +182,8 @@ public class PathFileSystemProvider extends FileSystemProvider {
 
     @Override
     public <A extends BasicFileAttributes> A readAttributes(final Path path, final Class<A> type, final LinkOption... options) throws IOException {
-        if (path instanceof PathPath p) {
+        if (path instanceof PathPath) {
+            final PathPath p = (PathPath) path;
             return p.getFileSystem().readAttributes(path, type, options);
         }
         throw new UnsupportedOperationException();

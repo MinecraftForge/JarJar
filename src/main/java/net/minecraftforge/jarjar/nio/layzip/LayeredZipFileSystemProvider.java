@@ -1,5 +1,6 @@
 package net.minecraftforge.jarjar.nio.layzip;
 
+import com.google.common.collect.ImmutableMap;
 import net.minecraftforge.jarjar.nio.pathfs.PathFileSystemProvider;
 import net.minecraftforge.jarjar.nio.pathfs.PathPath;
 
@@ -78,7 +79,7 @@ public class LayeredZipFileSystemProvider extends PathFileSystemProvider
 
     private FileSystem getOrCreateNewSystem(String keyPrefix, final Path path)
     {
-        final Map<String, ?> args = Map.of("packagePath", path.toAbsolutePath());
+        final Map<String, ?> args = ImmutableMap.of("packagePath", path.toAbsolutePath());
         try
         {
             return super.newFileSystem(new URI(super.getScheme() + ":" + keyPrefix + path.toString().replace("\\", "/")), args);
@@ -134,7 +135,7 @@ public class LayeredZipFileSystemProvider extends PathFileSystemProvider
         final URI outerUri = path.getFileSystem().getTarget().toUri();
         prefix = outerUri.getRawSchemeSpecificPart() + SEPARATOR;
 
-        return URI.create("%s:%s%s".formatted(SCHEME, prefix, path).replace("%s/".formatted(SEPARATOR), SEPARATOR));
+        return URI.create(String.format("%s:%s%s",SCHEME, prefix, path).replace(String.format("%s/", SEPARATOR), SEPARATOR));
     }
 
     @Override
@@ -147,7 +148,7 @@ public class LayeredZipFileSystemProvider extends PathFileSystemProvider
         final FileSystem workingSystem;
         try
         {
-            workingSystem = FileSystems.newFileSystem(workingPath.toUri(), Map.of());
+            workingSystem = FileSystems.newFileSystem(workingPath.toUri(), ImmutableMap.of());
         }
         catch (IOException e)
         {

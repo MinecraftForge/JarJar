@@ -14,12 +14,12 @@ class PathFSUtils
         throw new IllegalStateException("Can not instantiate an instance of: PathFSUtils. This is a utility class");
     }
 
-    public static final DirectoryStream<Path> NULL_STREAM = new DirectoryStream<>()
+    public static final DirectoryStream<Path> NULL_STREAM = new DirectoryStream<Path>()
     {
         @Override
         public Iterator<Path> iterator()
         {
-            return new Iterator<>()
+            return new Iterator<Path>()
             {
                 @Override
                 public boolean hasNext()
