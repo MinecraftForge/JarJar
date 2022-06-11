@@ -388,7 +388,7 @@ public final class JarSelector {
         }
     }
 
-    private enum FailureReason {
+    public enum FailureReason {
         VERSION_RESOLUTION_FAILED,
         NO_MATCHING_JAR,
     }
