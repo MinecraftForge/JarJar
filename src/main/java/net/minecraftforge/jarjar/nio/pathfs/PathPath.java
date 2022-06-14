@@ -37,7 +37,11 @@ public class PathPath extends AbstractPath implements Path {
     }
 
     private String[] getPathParts(final String longstring) {
-        final String[] localParts = longstring.equals(this.getFileSystem().getSeparator()) ? new String[] {""} : longstring.replace("\\", this.getFileSystem().getSeparator()).split(this.getFileSystem().getSeparator());
+        String[] localParts = longstring.equals(this.getFileSystem().getSeparator()) ? new String[] {""} : longstring.replace("\\", this.getFileSystem().getSeparator()).split(this.getFileSystem().getSeparator());
+
+        if (localParts.length > 1 && localParts[0].isEmpty()) {
+            localParts = Arrays.copyOfRange(localParts, 1, localParts.length);
+        }
 
         if (this.getFileSystem().provider() != null)
             return this.getFileSystem().provider().adaptPathParts(longstring, localParts);
@@ -60,27 +64,22 @@ public class PathPath extends AbstractPath implements Path {
         return new PathPath(this.fileSystem, true, ROOT);
     }
 
-
     @Override
     public Path getFileName() {
         return this.pathParts.length > 0 ? new PathPath(this.getFileSystem(), true, this.pathParts[this.pathParts.length-1]) : new PathPath(this.fileSystem, true, "");
     }
-
-
     @Override
     public Path getParent() {
-        if (this.pathParts.length > 0) {
+        if (this.pathParts.length > 0 && !(pathParts.length == 1 && pathParts[0].isEmpty())) {
             return new PathPath(this.fileSystem, true, Arrays.copyOf(this.pathParts,this.pathParts.length - 1));
         } else {
             return null;
         }
     }
-
     @Override
     public int getNameCount() {
         return this.pathParts.length;
     }
-
     @Override
     public Path getName(final int index) {
         if (index < 0 || index > this.pathParts.length -1) throw new IllegalArgumentException();

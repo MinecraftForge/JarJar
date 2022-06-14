@@ -118,7 +118,7 @@ public class TestPathFS
 
         assertNotNull(uriInPathFS);
         assertEquals(pathFS.provider().getScheme(), uriInPathFS.getScheme());
-        assertEquals("test~/dir1.zip", uriInPathFS.getRawSchemeSpecificPart());
+        assertEquals("test~dir1.zip", uriInPathFS.getRawSchemeSpecificPart());
     }
 
     @Test
@@ -136,7 +136,7 @@ public class TestPathFS
 
         assertNotNull(pathInPathFS);
         assertTrue(pathInPathFS instanceof PathPath);
-        assertEquals("/dir1.zip",pathInPathFS.toString());
+        assertEquals("dir1.zip", pathInPathFS.toString());
     }
 
     @Test
@@ -284,7 +284,7 @@ public class TestPathFS
 
         assertNotNull(uriInPathFS);
         assertEquals(innerPathFS.provider().getScheme(), uriInPathFS.getScheme());
-        assertEquals("inner~/subdir1", uriInPathFS.getRawSchemeSpecificPart());
+        assertEquals("inner~subdir1", uriInPathFS.getRawSchemeSpecificPart());
     }
 
     @Test
@@ -309,6 +309,8 @@ public class TestPathFS
 
         assertNotNull(pathInPathFS);
         assertTrue(pathInPathFS instanceof PathPath);
-        assertEquals("/subdir1",pathInPathFS.toString());
+        assertEquals("subdir1",pathInPathFS.toString());
     }
+
+
 }
