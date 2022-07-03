@@ -232,7 +232,7 @@ public final class JarSelector {
     }
 
     private static boolean isValid(final VersionRange range) {
-        return range.getRecommendedVersion() == null && !range.hasRestrictions();
+        return range.getRecommendedVersion() == null && range.hasRestrictions();
     }
 
     private static FailureReason getFailureReason(SelectionResult selectionResult) {

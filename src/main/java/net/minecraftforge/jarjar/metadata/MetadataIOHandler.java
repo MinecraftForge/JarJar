@@ -6,9 +6,11 @@ import net.minecraftforge.jarjar.metadata.json.*;
 import org.apache.maven.artifact.versioning.ArtifactVersion;
 import org.apache.maven.artifact.versioning.DefaultArtifactVersion;
 import org.apache.maven.artifact.versioning.VersionRange;
+import org.codehaus.plexus.util.StringInputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Arrays;
@@ -44,5 +46,10 @@ public final class MetadataIOHandler
 
     public static Iterable<String> toLines(final Metadata metadata) {
         return Arrays.asList(GSON.toJson(metadata).split("\n"));
+    }
+
+    public static InputStream toInputStream(final Metadata metadata) {
+        final String values = GSON.toJson(metadata);
+        return new ByteArrayInputStream(values.getBytes());
     }
 }
