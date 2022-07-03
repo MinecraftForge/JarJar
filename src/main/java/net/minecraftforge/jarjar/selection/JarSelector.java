@@ -89,7 +89,8 @@ public final class JarSelector {
                 }));
 
         //Strip out jars which are already included by source. We can't do any resolution on this anyway so we force the use of those by not returning them.
-        sourceJarsByIdentification.keySet().stream().filter(selectedJarsByIdentification::containsKey)
+        final Set<String> operatingKeySet = new HashSet<>(selectedJarsByIdentification.keySet()); //PREVENT CME's.
+        operatingKeySet.stream().filter(sourceJarsByIdentification::containsKey)
                 .peek(identification -> LOGGER.warn("Attempted to select a dependency jar for JarJar which was passed in as source: {}. Using {}", identification, sourceJarsByIdentification.get(identification)))
                 .forEach(selectedJarsByIdentification::remove);
         return new ArrayList<>(selectedJarsByIdentification.values());
@@ -228,7 +229,7 @@ public final class JarSelector {
             return versionRange;
         }
 
-        return versionRange.restrict(versionRange);
+        return versionRange.restrict(versionRange2);
     }
 
     private static boolean isValid(final VersionRange range) {

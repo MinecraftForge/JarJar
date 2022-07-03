@@ -15,7 +15,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 
 public class JarSelectorTest {
@@ -23,26 +22,8 @@ public class JarSelectorTest {
     @Test
     public void doesSelectRestrictedRange() throws InvalidVersionSpecificationException {
         final List<SelectionSource> sources = new ArrayList<>();
-        sources.add(new SelectionSource(
-                "outer_lower_version",
-                new Metadata(
-                ImmutableList.of(new ContainedJarMetadata(
-                        new ContainedJarIdentifier("test.one", "artifact"),
-                        new ContainedVersion(VersionRange.createFromVersionSpec("[1.0.0,)"), new DefaultArtifactVersion("1.0.0")),
-                        "test.one",
-                        false
-                ))),
-                new SelectionSource("inner_lower_version")));
-        sources.add(new SelectionSource(
-                "outer_higher_version",
-                new Metadata(
-                        ImmutableList.of(new ContainedJarMetadata(
-                                new ContainedJarIdentifier("test.one", "artifact"),
-                                new ContainedVersion(VersionRange.createFromVersionSpec("[1.0.1,)"), new DefaultArtifactVersion("1.0.1")),
-                                "test.one",
-                                false
-                        ))),
-                new SelectionSource("inner_higher_version")));
+        sources.add(createSource("outer_lower_version", createArtifact("[1.0.0,)", "1.0.0"), "test.one"));
+        sources.add(createSource("outer_higher_version", createArtifact("[1.0.1,)", "1.0.1"), "test.one"));
 
         final List<SelectionSource> selectedSources = JarSelector.detectAndSelect(
                 sources,
@@ -55,6 +36,99 @@ public class JarSelectorTest {
         );
 
         Assertions.assertEquals(1, selectedSources.size());
+    }
+
+    @Test
+    public void doesSelectThrowFailureIfNotUniteable() throws InvalidVersionSpecificationException {
+        final List<SelectionSource> sources = new ArrayList<>();
+        sources.add(createSource("outer_lower_version", createArtifact("[1.0.0,1.5.0)", "1.0.0"), "test.one"));
+        sources.add(createSource("outer_higher_version", createArtifact("[2.0.1,)", "1.0.1"), "test.one"));
+
+        Assertions.assertThrows(IllegalStateException.class, () -> {
+            JarSelector.detectAndSelect(
+                    sources,
+                    SelectionSource::getResource,
+                    SelectionSource::getInternal,
+                    SelectionSource::getName,
+                    (Function<Collection<JarSelector.ResolutionFailureInformation<SelectionSource>>, IllegalStateException>) resolutionFailureInformations -> {
+                        throw new IllegalStateException("Failed");
+                    }
+            );
+        });
+    }
+
+    @Test
+    public void doesSelectThrowFailureIfNoArtifactFound() throws InvalidVersionSpecificationException {
+        final List<SelectionSource> sources = new ArrayList<>();
+        sources.add(createSource("outer_lower_version", createArtifact("[1.0.0,1.5.0)", "1.0.0"), "test.one"));
+        sources.add(createSource("outer_higher_version", createArtifact("[1.4.0,1.6.0)", "1.5.5"), "test.one"));
+
+        Assertions.assertThrows(IllegalStateException.class, () -> {
+            JarSelector.detectAndSelect(
+                    sources,
+                    SelectionSource::getResource,
+                    SelectionSource::getInternal,
+                    SelectionSource::getName,
+                    (Function<Collection<JarSelector.ResolutionFailureInformation<SelectionSource>>, IllegalStateException>) resolutionFailureInformations -> {
+                        throw new IllegalStateException("Failed");
+                    }
+            );
+        });
+    }
+
+    @Test
+    public void selectSelectsNothingWhenNoInput() {
+        final List<SelectionSource> sources = new ArrayList<>();
+
+        final List<SelectionSource> selectedSources = JarSelector.detectAndSelect(
+                sources,
+                SelectionSource::getResource,
+                SelectionSource::getInternal,
+                SelectionSource::getName,
+                (Function<Collection<JarSelector.ResolutionFailureInformation<SelectionSource>>, IllegalStateException>) resolutionFailureInformations -> {
+                    throw new IllegalStateException("Failed");
+                }
+        );
+
+        Assertions.assertEquals(0, selectedSources.size());
+    }
+
+    @Test
+    public void doesSelectSelectAllDifferentArtifacts() throws InvalidVersionSpecificationException {
+        final List<SelectionSource> sources = new ArrayList<>();
+        sources.add(createSource("outer_lower_version", createArtifact("[1.0.0,)", "1.0.0"), "test.one"));
+        sources.add(createSource("outer_higher_version", createArtifact("test.two", "[1.0.1,)", "1.0.1"), "test.two"));
+
+        final List<SelectionSource> selectedSources = JarSelector.detectAndSelect(
+                sources,
+                SelectionSource::getResource,
+                SelectionSource::getInternal,
+                SelectionSource::getName,
+                (Function<Collection<JarSelector.ResolutionFailureInformation<SelectionSource>>, IllegalStateException>) resolutionFailureInformations -> {
+                    throw new IllegalStateException("Failed");
+                }
+        );
+
+        Assertions.assertEquals(2, selectedSources.size());
+    }
+
+    private SelectionSource createSource(final String outer_lower_version, final ContainedJarMetadata artifact, final String inner_lower_version) throws InvalidVersionSpecificationException {
+        return new SelectionSource(
+                outer_lower_version,
+                new Metadata(ImmutableList.of(artifact)),
+                new SelectionSource(inner_lower_version));
+    }
+
+    private ContainedJarMetadata createArtifact(final String spec, final String version) throws InvalidVersionSpecificationException {
+        return createArtifact("test.one", spec, version);
+    }
+    private ContainedJarMetadata createArtifact(final String name, final String spec, final String version) throws InvalidVersionSpecificationException {
+        return new ContainedJarMetadata(
+                new ContainedJarIdentifier(name, "artifact"),
+                new ContainedVersion(VersionRange.createFromVersionSpec(spec), new DefaultArtifactVersion(version)),
+                name,
+                false
+        );
     }
 
     private final class SelectionSource {
@@ -82,8 +156,8 @@ public class JarSelectorTest {
         }
 
         public Optional<SelectionSource> getInternal(final Path path) {
-            if (path.toString().contains("test.one")) {
-                return Optional.ofNullable(internalSource);
+            if (internalSource != null && path.toString().contains(internalSource.getName())) {
+                return Optional.of(internalSource);
             }
 
             return Optional.empty();
