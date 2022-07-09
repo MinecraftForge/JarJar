@@ -1,7 +1,6 @@
 package net.minecraftforge.jarjar.selection;
 
 import com.google.common.collect.*;
-import com.sun.org.apache.bcel.internal.generic.Select;
 import net.minecraftforge.jarjar.metadata.*;
 import net.minecraftforge.jarjar.util.Constants;
 import org.apache.maven.artifact.versioning.ArtifactVersion;
@@ -14,7 +13,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.function.BiFunction;
-import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -33,8 +31,8 @@ public final class JarSelector {
             final Function<Collection<ResolutionFailureInformation<T>>, E> failureExceptionProducer
     ) throws E {
         final Set<DetectionResult<T>> detectedMetadata = detect(source, resourceReader, sourceProducer, identificationProducer);
-        final Map<ContainedJarMetadata, T> detectedJarsBySource = detectedMetadata.stream().collect(Collectors.toMap(DetectionResult::metadata, DetectionResult::source));
-        final Map<ContainedJarMetadata, T> detectedJarsByRootSource = detectedMetadata.stream().collect(Collectors.toMap(DetectionResult::metadata, DetectionResult::rootSource));
+        final Multimap<ContainedJarMetadata, T> detectedJarsBySource = detectedMetadata.stream().collect(Multimaps.toMultimap(DetectionResult::metadata, DetectionResult::source, HashMultimap::create));
+        final Multimap<ContainedJarMetadata, T> detectedJarsByRootSource = detectedMetadata.stream().collect(Multimaps.toMultimap(DetectionResult::metadata, DetectionResult::rootSource, HashMultimap::create));
         final Multimap<ContainedJarIdentifier, ContainedJarMetadata> metadataByIdentifier = Multimaps.index(detectedJarsByRootSource.keySet(), ContainedJarMetadata::identifier);
 
         final Set<SelectionResult> select = select(detectedJarsBySource.keySet());
@@ -48,8 +46,8 @@ public final class JarSelector {
                 final ContainedJarIdentifier failedIdentifier = failedResult.identifier();
                 final Collection<ContainedJarMetadata> metadata = metadataByIdentifier.get(failedIdentifier);
                 final Set<SourceWithRequestedVersionRange<T>> sources = metadata.stream().map(containedJarMetadata -> {
-                            final T rootSource = detectedJarsBySource.get(containedJarMetadata);
-                            return new SourceWithRequestedVersionRange<T>(rootSource, containedJarMetadata.version().range(), containedJarMetadata.version().artifactVersion());
+                            final Collection<T> rootSources = detectedJarsBySource.get(containedJarMetadata);
+                            return new SourceWithRequestedVersionRange<T>(rootSources, containedJarMetadata.version().range(), containedJarMetadata.version().artifactVersion());
                         })
                         .collect(Collectors.toSet());
 
@@ -69,8 +67,8 @@ public final class JarSelector {
                 .map(Optional::get)
                 .filter(detectedJarsBySource::containsKey)
                 .map(selectedJarMetadata -> {
-                    final T sourceOfJar = detectedJarsBySource.get(selectedJarMetadata);
-                    return sourceProducer.apply(sourceOfJar, Paths.get(selectedJarMetadata.path()));
+                    final Collection<T> sourceOfJar = detectedJarsBySource.get(selectedJarMetadata);
+                    return sourceProducer.apply(sourceOfJar.iterator().next(), Paths.get(selectedJarMetadata.path()));
                 })
                 .filter(Optional::isPresent)
                 .map(Optional::get)
@@ -395,18 +393,18 @@ public final class JarSelector {
     }
 
     public static final class SourceWithRequestedVersionRange<Z> {
-        private final Z source;
+        private final Collection<Z> sources;
         private final VersionRange requestedVersionRange;
         private final ArtifactVersion includedVersion;
 
-        public SourceWithRequestedVersionRange(Z source, VersionRange requestedVersionRange, ArtifactVersion includedVersion) {
-            this.source = source;
+        public SourceWithRequestedVersionRange(Collection<Z> sources, VersionRange requestedVersionRange, ArtifactVersion includedVersion) {
+            this.sources = sources;
             this.requestedVersionRange = requestedVersionRange;
             this.includedVersion = includedVersion;
         }
 
-        public Z source() {
-            return source;
+        public Collection<Z> sources() {
+            return sources;
         }
 
         public VersionRange requestedVersionRange() {
@@ -424,14 +422,14 @@ public final class JarSelector {
 
             final SourceWithRequestedVersionRange<?> that = (SourceWithRequestedVersionRange<?>) o;
 
-            if (!source.equals(that.source)) return false;
+            if (!sources.equals(that.sources)) return false;
             if (!requestedVersionRange.equals(that.requestedVersionRange)) return false;
             return includedVersion.equals(that.includedVersion);
         }
 
         @Override
         public int hashCode() {
-            int result = source.hashCode();
+            int result = sources.hashCode();
             result = 31 * result + requestedVersionRange.hashCode();
             result = 31 * result + includedVersion.hashCode();
             return result;
@@ -440,7 +438,7 @@ public final class JarSelector {
         @Override
         public String toString() {
             return "SourceWithRequestedVersionRange{" +
-                    "source=" + source +
+                    "source=" + sources +
                     ", requestedVersionRange=" + requestedVersionRange +
                     ", includedVersion=" + includedVersion +
                     '}';

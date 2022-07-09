@@ -39,6 +39,25 @@ public class JarSelectorTest {
     }
 
     @Test
+    public void twoExactSameInnersResolvesToOne() throws InvalidVersionSpecificationException {
+        final List<SelectionSource> sources = new ArrayList<>();
+        sources.add(createSource("outer_one", createArtifact("[1.0.0,)", "1.0.0"), "test.one"));
+        sources.add(createSource("outer_two", createArtifact("[1.0.0,)", "1.0.0"), "test.one"));
+
+        final List<SelectionSource> selectedSources = JarSelector.detectAndSelect(
+                sources,
+                SelectionSource::getResource,
+                SelectionSource::getInternal,
+                SelectionSource::getName,
+                (Function<Collection<JarSelector.ResolutionFailureInformation<SelectionSource>>, IllegalStateException>) resolutionFailureInformations -> {
+                    throw new IllegalStateException("Failed");
+                }
+        );
+
+        Assertions.assertEquals(1, selectedSources.size());
+    }
+
+    @Test
     public void doesSelectThrowFailureIfNotUniteable() throws InvalidVersionSpecificationException {
         final List<SelectionSource> sources = new ArrayList<>();
         sources.add(createSource("outer_lower_version", createArtifact("[1.0.0,1.5.0)", "1.0.0"), "test.one"));
@@ -112,11 +131,11 @@ public class JarSelectorTest {
         Assertions.assertEquals(2, selectedSources.size());
     }
 
-    private SelectionSource createSource(final String outer_lower_version, final ContainedJarMetadata artifact, final String inner_lower_version) throws InvalidVersionSpecificationException {
+    private SelectionSource createSource(final String outer_name, final ContainedJarMetadata artifact, final String inner_name) throws InvalidVersionSpecificationException {
         return new SelectionSource(
-                outer_lower_version,
+                outer_name,
                 new Metadata(ImmutableList.of(artifact)),
-                new SelectionSource(inner_lower_version));
+                new SelectionSource(inner_name));
     }
 
     private ContainedJarMetadata createArtifact(final String spec, final String version) throws InvalidVersionSpecificationException {
