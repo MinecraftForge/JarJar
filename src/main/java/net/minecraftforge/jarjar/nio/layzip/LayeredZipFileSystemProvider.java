@@ -54,6 +54,17 @@ public class LayeredZipFileSystemProvider extends PathFileSystemProvider
         if (lastSection.startsWith("//"))
             lastSection = lastSection.substring(2);
 
+        if (env.containsKey("packagePath")) { //User requests specific package as a target;
+            try
+            {
+                final Path requestedPath = (Path) env.get("packagePath");
+                return super.newFileSystem(new URI(super.getScheme() + ":" + keyPrefix + requestedPath.toString().replace("\\", "/")), env);
+            }
+            catch (Exception e)
+            {
+                throw new UncheckedIOException("Failed to create intermediary FS.", new IOException("Failed to process data.", e));
+            }
+        }
 
         final Path lastPath = workingSystem.getPath(lastSection).toAbsolutePath();
         return getOrCreateNewSystem(keyPrefix, lastPath);
