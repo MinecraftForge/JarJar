@@ -1,7 +1,6 @@
 package net.minecraftforge.jarjar.nio.layzip;
 
 import com.google.common.collect.ImmutableMap;
-import net.minecraftforge.jarjar.nio.pathfs.PathFileSystem;
 import net.minecraftforge.jarjar.nio.pathfs.PathFileSystemProvider;
 import net.minecraftforge.jarjar.nio.pathfs.PathPath;
 
@@ -51,10 +50,7 @@ public class LayeredZipFileSystemProvider extends PathFileSystemProvider
         { //User requests specific package as a target;
             try
             {
-                final Path requestedPath = (Path) env.get("packagePath");
-                return super.newFileSystem(new URI(super.getScheme() + ":" + keyPrefix + requestedPath.toString()
-                                                                                                      .replace("\\",
-                                                                                                              "/")),
+                return super.newFileSystem(new URI(super.getScheme() + ":" + uri.getRawSchemeSpecificPart()),
                         env);
             } catch (Exception e)
             {
