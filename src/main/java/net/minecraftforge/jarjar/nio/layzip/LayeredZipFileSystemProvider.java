@@ -16,15 +16,16 @@ import java.util.Map;
 
 public class LayeredZipFileSystemProvider extends PathFileSystemProvider
 {
-    public static final String SCHEME    = "jij";
+    public static final String SCHEME = "jij";
     public static final String INDICATOR = "!";
-    public static final String SEPARATOR =  INDICATOR + "/";
+    public static final String SEPARATOR = INDICATOR + "/";
 
     public static final String URI_SPLIT_REGEX = SEPARATOR;
 
 
     @Override
-    public String getScheme() {
+    public String getScheme()
+    {
         return SCHEME;
     }
 
@@ -36,7 +37,8 @@ public class LayeredZipFileSystemProvider extends PathFileSystemProvider
 
         String keyPrefix = "";
 
-        if (sections.length > 1) {
+        if (sections.length > 1)
+        {
             for (int i = 0; i < sections.length - 1; i++)
             {
                 String section = sections[i];
@@ -54,15 +56,20 @@ public class LayeredZipFileSystemProvider extends PathFileSystemProvider
         if (lastSection.startsWith("//"))
             lastSection = lastSection.substring(2);
 
-        if (env.containsKey("packagePath")) { //User requests specific package as a target;
+        if (env.containsKey("packagePath"))
+        { //User requests specific package as a target;
             try
             {
                 final Path requestedPath = (Path) env.get("packagePath");
-                return super.newFileSystem(new URI(super.getScheme() + ":" + keyPrefix + requestedPath.toString().replace("\\", "/")), env);
-            }
-            catch (Exception e)
+                return super.newFileSystem(new URI(super.getScheme() + ":" + keyPrefix + requestedPath.toString()
+                                                                                                      .replace("\\",
+                                                                                                              "/")),
+                        env);
+            } catch (Exception e)
             {
-                throw new UncheckedIOException("Failed to create intermediary FS.", new IOException("Failed to process data.", e));
+                throw new UncheckedIOException("Failed to create intermediary FS.", new IOException("Failed to " +
+                                                                                                    "process data.",
+                        e));
             }
         }
 
@@ -72,10 +79,12 @@ public class LayeredZipFileSystemProvider extends PathFileSystemProvider
 
     private String handleAbsolutePrefixOnWindows(final FileSystem workingSystem, String section)
     {
-        if (workingSystem.getClass().getName().toLowerCase(Locale.ROOT).contains("windows")) {
+        if (workingSystem.getClass().getName().toLowerCase(Locale.ROOT).contains("windows"))
+        {
             //This special casing is needed, since else the rooted paths crash on Windows system because:
             // /D:/something is not a valid path on Windows.
-            //However, the JDK does not expose the Windows FS types and there are no marker classes, so we use the classname.
+            //However, the JDK does not expose the Windows FS types and there are no marker classes, so we use the
+            // classname.
             //Because we are fancy like that.
             if (section.startsWith("/"))
                 section = section.substring(1); //Turns /D:/something into D:/Something which is a valid windows path.
@@ -93,11 +102,12 @@ public class LayeredZipFileSystemProvider extends PathFileSystemProvider
         final Map<String, ?> args = ImmutableMap.of("packagePath", path.toAbsolutePath());
         try
         {
-            return super.newFileSystem(new URI(super.getScheme() + ":" + keyPrefix + path.toString().replace("\\", "/")), args);
-        }
-        catch (Exception e)
+            return super.newFileSystem(new URI(super.getScheme() + ":" + keyPrefix + path.toString()
+                                                                                         .replace("\\", "/")), args);
+        } catch (Exception e)
         {
-            throw new UncheckedIOException("Failed to create intermediary FS.", new IOException("Failed to process data.", e));
+            throw new UncheckedIOException("Failed to create intermediary FS.", new IOException("Failed to process " +
+                                                                                                "data.", e));
         }
     }
 
@@ -109,7 +119,8 @@ public class LayeredZipFileSystemProvider extends PathFileSystemProvider
             return super.getPath(uri);
 
         FileSystem workingSystem = FileSystems.getDefault(); //Grab the normal disk FS.
-        if (sections.length > 1) {
+        if (sections.length > 1)
+        {
             for (int i = 0; i < sections.length - 1; i++)
             {
                 final String section = sections[i];
@@ -126,8 +137,14 @@ public class LayeredZipFileSystemProvider extends PathFileSystemProvider
     public FileSystem getFileSystem(final URI uri)
     {
         final String[] sections = uri.getRawSchemeSpecificPart().split("~");
+        if (sections.length == 1)
+        {
+            return super.getFileSystem(uri);
+        }
+
         FileSystem workingSystem = FileSystems.getDefault(); //Grab the normal disk FS.
-        if (sections.length > 1) {
+        if (sections.length > 1)
+        {
             for (int i = 0; i < sections.length - 1; i++)
             {
                 final String section = sections[i];
@@ -149,7 +166,8 @@ public class LayeredZipFileSystemProvider extends PathFileSystemProvider
         final URI outerUri = path.getFileSystem().getTarget().toUri();
         prefix = outerUri.getRawSchemeSpecificPart() + SEPARATOR;
 
-        return URI.create(String.format("%s:%s%s",SCHEME, prefix, path).replace(String.format("%s/", SEPARATOR), SEPARATOR));
+        return URI.create(String.format("%s:%s%s", SCHEME, prefix, path)
+                                .replace(String.format("%s/", SEPARATOR), SEPARATOR));
     }
 
     @Override
@@ -158,24 +176,27 @@ public class LayeredZipFileSystemProvider extends PathFileSystemProvider
         if (!path.toString().contains(SEPARATOR))
             return path;
 
-        final Path workingPath = path.getFileSystem().getPath(path.toString().substring(0, path.toString().lastIndexOf(SEPARATOR)) + SEPARATOR);
+        final Path workingPath = path.getFileSystem()
+                                     .getPath(path.toString()
+                                                  .substring(0, path.toString().lastIndexOf(SEPARATOR)) + SEPARATOR);
         final FileSystem workingSystem;
         try
         {
             workingSystem = FileSystems.newFileSystem(workingPath.toUri(), ImmutableMap.of());
-        }
-        catch (IOException e)
+        } catch (IOException e)
         {
             throw new IllegalArgumentException("Failed to get sub file system for path!", e);
         }
 
-        return workingSystem.getPath(path.endsWith(SEPARATOR) ? "/" : path.toString().substring(path.toString().lastIndexOf(SEPARATOR) + 2));
+        return workingSystem.getPath(path.endsWith(SEPARATOR) ? "/" : path.toString()
+                                                                          .substring(path.toString()
+                                                                                         .lastIndexOf(SEPARATOR) + 2));
     }
 
     @Override
     public String[] adaptPathParts(final String longstring, final String[] pathParts)
     {
-        if(!longstring.endsWith(SEPARATOR))
+        if (!longstring.endsWith(SEPARATOR))
             return pathParts;
 
         pathParts[pathParts.length - 1] = pathParts[pathParts.length - 1] + "/";
