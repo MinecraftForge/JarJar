@@ -17,7 +17,7 @@ import java.util.stream.IntStream;
 public class PathPath extends AbstractPath implements Path {
     private final PathFileSystem fileSystem;
     private final String[]       pathParts;
-    static final String ROOT = "/";
+    public static final String ROOT = "/";
 
     PathPath(final PathFileSystem fileSystem, boolean knownCorrectSplit, final String... pathParts) {
         this.fileSystem = fileSystem;

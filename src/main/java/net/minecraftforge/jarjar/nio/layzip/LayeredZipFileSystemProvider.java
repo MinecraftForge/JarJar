@@ -1,6 +1,7 @@
 package net.minecraftforge.jarjar.nio.layzip;
 
 import com.google.common.collect.ImmutableMap;
+import net.minecraftforge.jarjar.nio.pathfs.PathFileSystem;
 import net.minecraftforge.jarjar.nio.pathfs.PathFileSystemProvider;
 import net.minecraftforge.jarjar.nio.pathfs.PathPath;
 
@@ -13,11 +14,12 @@ import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 
 public class LayeredZipFileSystemProvider extends PathFileSystemProvider
 {
     public static final String SCHEME = "jij";
-    public static final String URI_SPLIT_REGEX = PATH_SEPERATOR;
+    public static final String URI_SPLIT_REGEX = COMPONENT_SEPERATOR;
 
 
     @Override
@@ -30,23 +32,15 @@ public class LayeredZipFileSystemProvider extends PathFileSystemProvider
     public FileSystem newFileSystem(final URI uri, final Map<String, ?> env) throws IOException
     {
         final String[] sections = uri.getRawSchemeSpecificPart().split(URI_SPLIT_REGEX);
-        FileSystem workingSystem = FileSystems.getDefault(); //Grab the normal disk FS.
 
+        FileSystem workingSystem = FileSystems.getDefault(); //Grab the normal disk FS.
         String keyPrefix = "";
 
         if (sections.length > 1)
         {
-            for (int i = 0; i < sections.length - 1; i++)
-            {
-                String section = sections[i];
-                if (section.startsWith("//"))
-                    section = section.substring(2);
-
-                section = handleAbsolutePrefixOnWindows(workingSystem, section);
-                final Path path = workingSystem.getPath(section).toAbsolutePath();
-                workingSystem = getOrCreateNewSystem(keyPrefix, path);
-                keyPrefix += path.toString().replace("\\", "/") + PATH_SEPERATOR;
-            }
+            final AdaptedURIWithPrefixSelection adaptedURI = adaptUriSections(sections);
+            keyPrefix = adaptedURI.getPrefix();
+            workingSystem = adaptedURI.getFileSystem();
         }
 
         String lastSection = sections[sections.length - 1];
@@ -160,11 +154,18 @@ public class LayeredZipFileSystemProvider extends PathFileSystemProvider
     {
         String prefix = "";
 
-        final URI outerUri = path.getFileSystem().getTarget().toUri();
-        prefix = outerUri.getRawSchemeSpecificPart() + PATH_SEPERATOR;
+        prefix = buildPrefixFor(path.getFileSystem().getTarget());
 
         return URI.create(String.format("%s:%s%s", SCHEME, prefix, path)
                                 .replace(String.format("%s/", PATH_SEPERATOR), PATH_SEPERATOR));
+    }
+
+    protected String buildPrefixFor(final Path path) {
+        if (path instanceof PathPath) {
+            return buildPrefixFor(((PathPath) path).getFileSystem().getTarget()) + PATH_SEPERATOR + path.toAbsolutePath();
+        }
+
+        return path.toAbsolutePath().toUri().getRawSchemeSpecificPart();
     }
 
     @Override
@@ -198,5 +199,73 @@ public class LayeredZipFileSystemProvider extends PathFileSystemProvider
 
         pathParts[pathParts.length - 1] = pathParts[pathParts.length - 1] + "/";
         return pathParts;
+    }
+
+    private AdaptedURIWithPrefixSelection adaptUriSections(final String[] sections) {
+        String keyPrefix = "";
+        FileSystem workingSystem = FileSystems.getDefault();
+
+        //First try a reverse lookup of a key based approach:
+        final Optional<FileSystem> rootKnownCandidateSystem = super.getFileSystemFromKey(sections[0]);
+        if (rootKnownCandidateSystem.isPresent()) {
+            //Okey special case: We have a file system in the root that is known to us.
+            //We will recursively resolve this untill we have handled all sections:
+            //First deal with the case that we do not have any other paths:
+            if (sections.length == 1) {
+                return new AdaptedURIWithPrefixSelection(rootKnownCandidateSystem.get(), sections[0]);
+            }
+
+            workingSystem = rootKnownCandidateSystem.get();
+            keyPrefix += sections[0].replace("\\", "/") + PATH_SEPERATOR;
+
+            for (int i = 1; i < sections.length - 2; i++)
+            {
+                String section = sections[i];
+                if (section.startsWith("/"))
+                    section = section.substring(1);
+
+                final Path path = workingSystem.getPath(section).toAbsolutePath();
+                workingSystem = getOrCreateNewSystem(keyPrefix, path);
+                keyPrefix += path.toString().replace("\\", "/") + PATH_SEPERATOR;
+            }
+
+            return new AdaptedURIWithPrefixSelection(workingSystem, sections[sections.length - 1]);
+        }
+
+        //This is now a special case here, we might be in native land so we need to deal with it.
+        for (int i = 0; i < sections.length - 1; i++)
+        {
+            String section = sections[i];
+            if (section.startsWith("//"))
+                section = section.substring(2);
+
+            section = handleAbsolutePrefixOnWindows(workingSystem, section);
+            final Path path = workingSystem.getPath(section).toAbsolutePath();
+            workingSystem = getOrCreateNewSystem(keyPrefix, path);
+            keyPrefix += path.toString().replace("\\", "/") + PATH_SEPERATOR;
+        }
+
+        return new AdaptedURIWithPrefixSelection(workingSystem, keyPrefix);
+    }
+
+    private final class AdaptedURIWithPrefixSelection {
+        private final String prefix;
+        private final FileSystem fileSystem;
+
+        private AdaptedURIWithPrefixSelection(final FileSystem fileSystem, final String prefix)
+        {
+            this.prefix = prefix;
+            this.fileSystem = fileSystem;
+        }
+
+        public String getPrefix()
+        {
+            return prefix;
+        }
+
+        public FileSystem getFileSystem()
+        {
+            return fileSystem;
+        }
     }
 }

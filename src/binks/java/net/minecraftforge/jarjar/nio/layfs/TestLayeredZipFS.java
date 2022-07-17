@@ -56,18 +56,39 @@ public class TestLayeredZipFS
         ).normalize();
         final FileSystem zipFS = FileSystems.newFileSystem(filePathUri, new HashMap<>());
 
-        final Path pathInFS = zipFS.getPath("/");
+        final Path pathInFS = zipFS.getPath("/some_directory/with_some_file.txt");
         final URI uriInFS = pathInFS.toUri();
 
         final URI expectedUri = new URI(
           "jij:" +
             (Paths.get("src/binks/resources/dir_in_dir_in_dir.zip").toAbsolutePath()
               .toUri().getRawSchemeSpecificPart())
-            + "~/dir_in_dir.zip~/dir1.zip~/"
+            + "~/dir_in_dir.zip~/dir1.zip~/some_directory/with_some_file.txt"
         ).normalize();
 
         assertEquals(expectedUri.toString(), uriInFS.toString());
     }
+
+    @Test
+    public void testRelativeRootUriConversion() throws URISyntaxException, IOException {
+        final URI filePathUri = new URI(
+                "jij:src/binks/resources/dir_in_dir_in_dir.zip~/dir_in_dir.zip~/dir1.zip~/"
+        ).normalize();
+        final FileSystem zipFS = FileSystems.newFileSystem(filePathUri, new HashMap<>());
+
+        final Path pathInFS = zipFS.getPath("/");
+        final URI uriInFS = pathInFS.toUri();
+
+        final URI expectedUri = new URI(
+                "jij:" +
+                (Paths.get("src/binks/resources/dir_in_dir_in_dir.zip").toAbsolutePath()
+                      .toUri().getRawSchemeSpecificPart())
+                + "~/dir_in_dir.zip~/dir1.zip~/"
+        ).normalize();
+
+        assertEquals(expectedUri.toString(), uriInFS.toString());
+    }
+
 
     @Test
     public void testSplitResolving() throws URISyntaxException, IOException {

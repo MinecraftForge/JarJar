@@ -12,6 +12,7 @@ import java.nio.file.attribute.FileAttributeView;
 import java.nio.file.spi.FileSystemProvider;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 public class PathFileSystemProvider extends FileSystemProvider {
@@ -229,5 +230,10 @@ public class PathFileSystemProvider extends FileSystemProvider {
     public String[] adaptPathParts(final String longstring, final String[] pathParts)
     {
         return pathParts;
+    }
+
+    protected Optional<FileSystem> getFileSystemFromKey(final String section)
+    {
+        return Optional.ofNullable(this.fileSystems.get(section));
     }
 }
