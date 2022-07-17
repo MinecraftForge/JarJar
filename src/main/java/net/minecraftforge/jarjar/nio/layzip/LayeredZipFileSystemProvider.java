@@ -17,10 +17,7 @@ import java.util.Map;
 public class LayeredZipFileSystemProvider extends PathFileSystemProvider
 {
     public static final String SCHEME = "jij";
-    public static final String INDICATOR = "!";
-    public static final String SEPARATOR = INDICATOR + "/";
-
-    public static final String URI_SPLIT_REGEX = SEPARATOR;
+    public static final String URI_SPLIT_REGEX = PATH_SEPERATOR;
 
 
     @Override
@@ -48,7 +45,7 @@ public class LayeredZipFileSystemProvider extends PathFileSystemProvider
                 section = handleAbsolutePrefixOnWindows(workingSystem, section);
                 final Path path = workingSystem.getPath(section).toAbsolutePath();
                 workingSystem = getOrCreateNewSystem(keyPrefix, path);
-                keyPrefix += path.toString().replace("\\", "/") + INDICATOR;
+                keyPrefix += path.toString().replace("\\", "/") + PATH_SEPERATOR;
             }
         }
 
@@ -164,21 +161,21 @@ public class LayeredZipFileSystemProvider extends PathFileSystemProvider
         String prefix = "";
 
         final URI outerUri = path.getFileSystem().getTarget().toUri();
-        prefix = outerUri.getRawSchemeSpecificPart() + SEPARATOR;
+        prefix = outerUri.getRawSchemeSpecificPart() + PATH_SEPERATOR;
 
         return URI.create(String.format("%s:%s%s", SCHEME, prefix, path)
-                                .replace(String.format("%s/", SEPARATOR), SEPARATOR));
+                                .replace(String.format("%s/", PATH_SEPERATOR), PATH_SEPERATOR));
     }
 
     @Override
     public Path adaptResolvedPath(final PathPath path)
     {
-        if (!path.toString().contains(SEPARATOR))
+        if (!path.toString().contains(PATH_SEPERATOR))
             return path;
 
         final Path workingPath = path.getFileSystem()
                                      .getPath(path.toString()
-                                                  .substring(0, path.toString().lastIndexOf(SEPARATOR)) + SEPARATOR);
+                                                  .substring(0, path.toString().lastIndexOf(PATH_SEPERATOR)) + PATH_SEPERATOR);
         final FileSystem workingSystem;
         try
         {
@@ -188,15 +185,15 @@ public class LayeredZipFileSystemProvider extends PathFileSystemProvider
             throw new IllegalArgumentException("Failed to get sub file system for path!", e);
         }
 
-        return workingSystem.getPath(path.endsWith(SEPARATOR) ? "/" : path.toString()
-                                                                          .substring(path.toString()
-                                                                                         .lastIndexOf(SEPARATOR) + 2));
+        return workingSystem.getPath(path.endsWith(PATH_SEPERATOR) ? "/" : path.toString()
+                                                                               .substring(path.toString()
+                                                                                         .lastIndexOf(PATH_SEPERATOR) + 2));
     }
 
     @Override
     public String[] adaptPathParts(final String longstring, final String[] pathParts)
     {
-        if (!longstring.endsWith(SEPARATOR))
+        if (!longstring.endsWith(PATH_SEPERATOR))
             return pathParts;
 
         pathParts[pathParts.length - 1] = pathParts[pathParts.length - 1] + "/";

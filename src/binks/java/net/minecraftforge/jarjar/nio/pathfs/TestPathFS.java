@@ -81,7 +81,7 @@ public class TestPathFS
 
         assertNotNull(uriInPathFS);
         assertEquals(pathFS.provider().getScheme(), uriInPathFS.getScheme());
-        assertEquals("test~dir1.zip", uriInPathFS.getRawSchemeSpecificPart());
+        assertEquals("test~/dir1.zip", uriInPathFS.getRawSchemeSpecificPart());
     }
 
     @Test
@@ -95,7 +95,7 @@ public class TestPathFS
         //This needs to be ran since else the test FS does not exist!
         final FileSystem pathFS = FileSystems.newFileSystem(pathFsUri, args);
 
-        final URI uriInPathFS = new URI("path:test~dir1.zip");
+        final URI uriInPathFS = new URI("path:test~/dir1.zip");
         final Path pathInPathFS = Paths.get(uriInPathFS);
 
         assertNotNull(pathInPathFS);
@@ -118,7 +118,7 @@ public class TestPathFS
 
         assertNotNull(uriInPathFS);
         assertEquals(pathFS.provider().getScheme(), uriInPathFS.getScheme());
-        assertEquals("test~dir1.zip", uriInPathFS.getRawSchemeSpecificPart());
+        assertEquals("test~/dir1.zip", uriInPathFS.getRawSchemeSpecificPart());
     }
 
     @Test
@@ -167,7 +167,7 @@ public class TestPathFS
         //This needs to be ran since else the test FS does not exist!
         final FileSystem pathFS = FileSystems.newFileSystem(pathFsUri, args);
 
-        final URI uriInPathFS = new URI("path:test~dir1.zip");
+        final URI uriInPathFS = new URI("path:test~/dir1.zip");
         final Path pathInPathFS = Paths.get(uriInPathFS);
         final URI resultUri = pathInPathFS.toUri();
 
@@ -236,7 +236,7 @@ public class TestPathFS
 
         assertNotNull(uriInPathFS);
         assertEquals(innerPathFS.provider().getScheme(), uriInPathFS.getScheme());
-        assertEquals("inner~subdir1", uriInPathFS.getRawSchemeSpecificPart());
+        assertEquals("inner~/subdir1", uriInPathFS.getRawSchemeSpecificPart());
     }
 
     @Test
@@ -284,7 +284,7 @@ public class TestPathFS
 
         assertNotNull(uriInPathFS);
         assertEquals(innerPathFS.provider().getScheme(), uriInPathFS.getScheme());
-        assertEquals("inner~subdir1", uriInPathFS.getRawSchemeSpecificPart());
+        assertEquals("inner~/subdir1", uriInPathFS.getRawSchemeSpecificPart());
     }
 
     @Test

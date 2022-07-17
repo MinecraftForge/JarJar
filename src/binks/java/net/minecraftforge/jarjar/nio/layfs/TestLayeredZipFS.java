@@ -21,7 +21,7 @@ public class TestLayeredZipFS
     {
 
         final URI filePathUri = new URI(
-          "jij:src/binks/resources/dir_in_dir_in_dir.zip!/dir_in_dir.zip!/dir1.zip/"
+          "jij:src/binks/resources/dir_in_dir_in_dir.zip~/dir_in_dir.zip~/dir1.zip/"
         );
         final FileSystem zipFS = FileSystems.newFileSystem(filePathUri, new HashMap<>());
 
@@ -38,7 +38,7 @@ public class TestLayeredZipFS
           "jij:" +
             (Paths.get("src/binks/resources/dir_in_dir_in_dir.zip").toAbsolutePath()
                .toUri().getRawSchemeSpecificPart())
-            + "!/dir_in_dir.zip!/dir1.zip!/"
+            + "~/dir_in_dir.zip~/dir1.zip~/"
         ).normalize();
         final FileSystem zipFS = FileSystems.newFileSystem(filePathUri, new HashMap<>());
 
@@ -52,7 +52,7 @@ public class TestLayeredZipFS
     @Test
     public void testRelativeUriConversion() throws URISyntaxException, IOException {
         final URI filePathUri = new URI(
-          "jij:src/binks/resources/dir_in_dir_in_dir.zip!/dir_in_dir.zip!/dir1.zip!/"
+          "jij:src/binks/resources/dir_in_dir_in_dir.zip~/dir_in_dir.zip~/dir1.zip~/"
         ).normalize();
         final FileSystem zipFS = FileSystems.newFileSystem(filePathUri, new HashMap<>());
 
@@ -63,7 +63,7 @@ public class TestLayeredZipFS
           "jij:" +
             (Paths.get("src/binks/resources/dir_in_dir_in_dir.zip").toAbsolutePath()
               .toUri().getRawSchemeSpecificPart())
-            + "!/dir_in_dir.zip!/dir1.zip!/"
+            + "~/dir_in_dir.zip~/dir1.zip~/"
         ).normalize();
 
         assertEquals(expectedUri.toString(), uriInFS.toString());
@@ -77,8 +77,8 @@ public class TestLayeredZipFS
         final FileSystem zipFS = FileSystems.newFileSystem(filePathUri, new HashMap<>());
 
         final Path rootPathInFs = zipFS.getPath("/");
-        final Path secondLayerZipPath = rootPathInFs.resolve("/dir_in_dir.zip!/");
-        final Path thirdLayerZipPath = secondLayerZipPath.resolve("dir1.zip!/");
+        final Path secondLayerZipPath = rootPathInFs.resolve("/dir_in_dir.zip~/");
+        final Path thirdLayerZipPath = secondLayerZipPath.resolve("dir1.zip~/");
 
         assertNotEquals(rootPathInFs.getFileSystem(), secondLayerZipPath.getFileSystem());
         assertNotEquals(secondLayerZipPath.getFileSystem(), thirdLayerZipPath.getFileSystem());
@@ -92,7 +92,7 @@ public class TestLayeredZipFS
         final FileSystem zipFS = FileSystems.newFileSystem(filePathUri, new HashMap<>());
 
         final Path rootPathInFs = zipFS.getPath("/");
-        final Path secondLayerZipPath = rootPathInFs.resolve("/dir_in_dir.zip!/dir1.zip!/");
+        final Path secondLayerZipPath = rootPathInFs.resolve("/dir_in_dir.zip~/dir1.zip~/");
 
         assertNotEquals(rootPathInFs.getFileSystem(), secondLayerZipPath.getFileSystem());
     }
@@ -106,8 +106,8 @@ public class TestLayeredZipFS
         final FileSystem zipFS = FileSystems.newFileSystem(filePathUri, new HashMap<>());
 
         final Path rootPathInFs = zipFS.getPath("/");
-        final Path secondLayerZipPath = rootPathInFs.resolve(rootPathInFs.getFileSystem().getPath("/dir_in_dir.zip!/"));
-        final Path thirdLayerZipPath = secondLayerZipPath.resolve(secondLayerZipPath.getFileSystem().getPath("dir1.zip!/"));
+        final Path secondLayerZipPath = rootPathInFs.resolve(rootPathInFs.getFileSystem().getPath("/dir_in_dir.zip~/"));
+        final Path thirdLayerZipPath = secondLayerZipPath.resolve(secondLayerZipPath.getFileSystem().getPath("dir1.zip~/"));
 
         assertNotEquals(rootPathInFs.getFileSystem(), secondLayerZipPath.getFileSystem());
         assertNotEquals(secondLayerZipPath.getFileSystem(), thirdLayerZipPath.getFileSystem());
@@ -121,7 +121,7 @@ public class TestLayeredZipFS
         final FileSystem zipFS = FileSystems.newFileSystem(filePathUri, new HashMap<>());
 
         final Path rootPathInFs = zipFS.getPath("/");
-        final Path secondLayerZipPath = rootPathInFs.resolve(rootPathInFs.getFileSystem().getPath("/dir_in_dir.zip!/dir1.zip!/"));
+        final Path secondLayerZipPath = rootPathInFs.resolve(rootPathInFs.getFileSystem().getPath("/dir_in_dir.zip~/dir1.zip~/"));
 
         assertNotEquals(rootPathInFs.getFileSystem(), secondLayerZipPath.getFileSystem());
     }

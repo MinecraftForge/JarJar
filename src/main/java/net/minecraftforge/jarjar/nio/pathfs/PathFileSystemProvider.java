@@ -15,6 +15,8 @@ import java.util.Map;
 import java.util.Set;
 
 public class PathFileSystemProvider extends FileSystemProvider {
+    protected static final String COMPONENT_SEPERATOR = "~";
+    public static final String PATH_SEPERATOR = PathFileSystemProvider.COMPONENT_SEPERATOR + "/";
     private final Map<String, PathFileSystem> fileSystems = new HashMap<>();
 
     @Override
@@ -102,7 +104,7 @@ public class PathFileSystemProvider extends FileSystemProvider {
 
     @Override
     public Path getPath(final URI uri) {
-        final String[] parts = uri.getRawSchemeSpecificPart().split("~");
+        final String[] parts = uri.getRawSchemeSpecificPart().split(COMPONENT_SEPERATOR);
         if (parts.length > 1) {
             return getFileSystem(uri).getPath(parts[1]);
         } else {
@@ -112,7 +114,7 @@ public class PathFileSystemProvider extends FileSystemProvider {
 
     @Override
     public FileSystem getFileSystem(final URI uri) {
-        final String[] parts = uri.getRawSchemeSpecificPart().split("~");
+        final String[] parts = uri.getRawSchemeSpecificPart().split(COMPONENT_SEPERATOR);
         if (!fileSystems.containsKey(parts[0])) throw new FileSystemNotFoundException();
         return fileSystems.get(parts[0]);
     }
@@ -209,7 +211,7 @@ public class PathFileSystemProvider extends FileSystemProvider {
     {
         return new URI(
           path.getFileSystem().provider().getScheme(),
-          path.getFileSystem().getKey() + '~' + path,
+                path.getFileSystem().getKey() + PATH_SEPERATOR + path,
           null
         );
     }
