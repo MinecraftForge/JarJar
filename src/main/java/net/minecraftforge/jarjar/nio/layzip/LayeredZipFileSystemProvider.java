@@ -105,6 +105,9 @@ public class LayeredZipFileSystemProvider extends PathFileSystemProvider
     public Path getPath(final URI uri)
     {
         final String[] sections = uri.getRawSchemeSpecificPart().split("~");
+        if (sections.length == 1)
+            return super.getPath(uri);
+
         FileSystem workingSystem = FileSystems.getDefault(); //Grab the normal disk FS.
         if (sections.length > 1) {
             for (int i = 0; i < sections.length - 1; i++)
