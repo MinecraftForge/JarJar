@@ -13,6 +13,7 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 public class ZipFsPathFsCompatTests {
 
@@ -49,13 +50,15 @@ public class ZipFsPathFsCompatTests {
     }
 
     @Test
-    public void rootTest() throws URISyntaxException, IOException
+    public void rootsOfNormalZipFSIsDifferentDueToFML() throws URISyntaxException, IOException
     {
         final Path windowsPath = Paths.get("src/binks/resources/dir1.zip");
         FileSystem jarFs = FileSystems.newFileSystem(URI.create("jar:" + windowsPath.toUri()), new HashMap<>());
         FileSystem pathFs = FileSystems.newFileSystem(URI.create("path:///test"), ImmutableMap.of("packagePath", Paths.get("src/binks/resources/dir1.zip")));
 
-        assertEquals(
+        //NOTE: This should normally be equals but in this particular case we do not want the FS spec for the ZIP since it
+        // fails in the case of the root for the use of PathFS in FML when it detects filenames.
+        assertNotEquals(
                 jarFs.getPath("/abc/xyz").getRoot().toString(),
                 pathFs.getPath("/abc/xyz").getRoot().toString()
         );

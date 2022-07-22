@@ -47,6 +47,11 @@ public class TestPathFS
         final List<String> pathFSDirectories = Files.walk(pathFS.getPath("")).filter(Files::isDirectory).map(Path::getFileName).map(Path::toString).collect(Collectors.toList());
         final List<String> sourceDirectories = Files.walk(target).filter(Files::isDirectory).map(target::relativize).map(Path::getFileName).map(Path::toString).collect(Collectors.toList());
 
+        //We need to remove the root of the tree.
+        //This is caused by the filename behaviour of PathFS where it returns the target file name on the root.
+        pathFSDirectories.remove(0);
+        sourceDirectories.remove(0);
+
         assertIterableEquals(sourceDirectories, pathFSDirectories);
     }
 
@@ -62,6 +67,11 @@ public class TestPathFS
 
         final List<String> pathFSDirectories = Files.walk(pathFS.getPath("/")).filter(Files::isDirectory).map(Path::getFileName).map(Path::toString).collect(Collectors.toList());
         final List<String> sourceDirectories = Files.walk(target).filter(Files::isDirectory).map(target::relativize).map(Path::getFileName).map(Path::toString).collect(Collectors.toList());
+
+        //We need to remove the root of the tree.
+        //This is caused by the filename behaviour of PathFS where it returns the target file name on the root.
+        pathFSDirectories.remove(0);
+        sourceDirectories.remove(0);
 
         assertIterableEquals(sourceDirectories, pathFSDirectories);
     }
