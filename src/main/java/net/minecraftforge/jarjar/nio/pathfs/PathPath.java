@@ -61,7 +61,7 @@ public class PathPath extends AbstractPath implements Path {
 
     @Override
     public Path getRoot() {
-        return new PathPath(this.fileSystem, true, ROOT);
+        return this.fileSystem.getRoot();
     }
 
     @Override
