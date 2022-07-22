@@ -66,6 +66,11 @@ public class PathPath extends AbstractPath implements Path {
 
     @Override
     public Path getFileName() {
+        if (this.getRoot().equals(this.toAbsolutePath())) {
+            //We are root. To allow FML to load generic libraries into ML we need a proper name here.
+            return this.fileSystem.getTarget().getFileName();
+        }
+
         return this.pathParts.length > 0 ? new PathPath(this.getFileSystem(), true, this.pathParts[this.pathParts.length-1]) : new PathPath(this.fileSystem, true, "");
     }
     @Override
