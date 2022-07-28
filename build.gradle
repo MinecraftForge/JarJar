@@ -1,5 +1,9 @@
+// Configure Auto Relocation
+import com.github.jengelman.gradle.plugins.shadow.tasks.ConfigureShadowRelocation
+
 plugins {
     id 'net.minecraftforge.gradleutils'
+    id 'com.github.johnrengelman.shadow' version '7.1.2'
     id 'java-library'
     id 'maven-publish'
 }
@@ -56,6 +60,13 @@ dependencies {
 test {
     useJUnitPlatform()
 }
+
+task relocateShadowJar(type: ConfigureShadowRelocation) {
+    target = tasks.shadowJar
+    prefix = "net.minecraftforge.jarjar.thedarkside"
+}
+
+tasks.shadowJar.dependsOn tasks.relocateShadowJar
 
 publishing {
     publications {
