@@ -13,6 +13,7 @@ sourceSets {
         java {
             srcDir file('src/filesystems/java')
         }
+        resources.srcDir file('src/filesystems/resources')
     }
     test {
         java {
@@ -65,6 +66,7 @@ test {
 
 tasks.register('fileSystemsJar', Jar) {
     archivesBaseName = 'filesystems'
+
     from sourceSets.filesystems.output
 }
 
