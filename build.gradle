@@ -13,7 +13,6 @@ sourceSets {
         java {
             srcDir file('src/filesystems/java')
         }
-        resources.srcDir file('src/filesystems/resources')
     }
     test {
         java {
@@ -62,6 +61,10 @@ dependencies {
 
 test {
     useJUnitPlatform()
+}
+
+processTestResources {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
 tasks.register('fileSystemsJar', Jar) {
