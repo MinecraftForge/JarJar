@@ -1,12 +1,12 @@
 package net.minecraftforge.jarjar.nio.pathfs;
 
-import com.google.common.collect.ImmutableMap;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.*;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -22,7 +22,7 @@ public class TestPathFS
         final Path target =  Paths.get("src", "binks", "resources", "dir1.zip");
 
         final URI pathFsUri = new URI("path:///test");
-        final Map<String, ?> args = ImmutableMap.of("packagePath", target);
+        final Map<String, ?> args = createMap("packagePath", target);
 
         final FileSystem pathFS = FileSystems.newFileSystem(pathFsUri, args);
 
@@ -40,7 +40,7 @@ public class TestPathFS
         final Path target =  Paths.get("src", "binks");
 
         final URI pathFsUri = new URI("path://test");
-        final Map<String, ?> args = ImmutableMap.of("packagePath", target);
+        final Map<String, ?> args = createMap("packagePath", target);
 
         final FileSystem pathFS = FileSystems.newFileSystem(pathFsUri, args);
 
@@ -61,7 +61,7 @@ public class TestPathFS
         final Path target =  Paths.get("src", "binks");
 
         final URI pathFsUri = new URI("path://test");
-        final Map<String, ?> args = ImmutableMap.of("packagePath", target);
+        final Map<String, ?> args = createMap("packagePath", target);
 
         final FileSystem pathFS = FileSystems.newFileSystem(pathFsUri, args);
 
@@ -82,7 +82,7 @@ public class TestPathFS
         final Path target =  Paths.get("src", "binks");
 
         final URI pathFsUri = new URI("path://test");
-        final Map<String, ?> args = ImmutableMap.of("packagePath", target);
+        final Map<String, ?> args = createMap("packagePath", target);
 
         final FileSystem pathFS = FileSystems.newFileSystem(pathFsUri, args);
 
@@ -100,9 +100,9 @@ public class TestPathFS
         final Path target =  Paths.get("src", "binks");
 
         final URI pathFsUri = new URI("path://test");
-        final Map<String, ?> args = ImmutableMap.of("packagePath", target);
+        final Map<String, ?> args = createMap("packagePath", target);
 
-        //This needs to be ran since else the test FS does not exist!
+        //This needs to be run since else the test FS does not exist!
         final FileSystem pathFS = FileSystems.newFileSystem(pathFsUri, args);
 
         final URI uriInPathFS = new URI("path:test~/dir1.zip");
@@ -119,7 +119,7 @@ public class TestPathFS
         final Path target =  Paths.get("src", "binks");
 
         final URI pathFsUri = new URI("path://test");
-        final Map<String, ?> args = ImmutableMap.of("packagePath", target);
+        final Map<String, ?> args = createMap("packagePath", target);
 
         final FileSystem pathFS = FileSystems.newFileSystem(pathFsUri, args);
 
@@ -137,7 +137,7 @@ public class TestPathFS
         final Path target =  Paths.get("src", "binks");
 
         final URI pathFsUri = new URI("path://test");
-        final Map<String, ?> args = ImmutableMap.of("packagePath", target);
+        final Map<String, ?> args = createMap("packagePath", target);
 
         final FileSystem pathFS = FileSystems.newFileSystem(pathFsUri, args);
 
@@ -155,7 +155,7 @@ public class TestPathFS
         final Path target =  Paths.get("src", "binks");
 
         final URI pathFsUri = new URI("path://test");
-        final Map<String, ?> args = ImmutableMap.of("packagePath", target);
+        final Map<String, ?> args = createMap("packagePath", target);
 
         final FileSystem pathFS = FileSystems.newFileSystem(pathFsUri, args);
 
@@ -172,9 +172,9 @@ public class TestPathFS
         final Path target =  Paths.get("src", "binks");
 
         final URI pathFsUri = new URI("path://test");
-        final Map<String, ?> args = ImmutableMap.of("packagePath", target);
+        final Map<String, ?> args = createMap("packagePath", target);
 
-        //This needs to be ran since else the test FS does not exist!
+        //This needs to be run since else the test FS does not exist!
         final FileSystem pathFS = FileSystems.newFileSystem(pathFsUri, args);
 
         final URI uriInPathFS = new URI("path:test~/dir1.zip");
@@ -190,13 +190,13 @@ public class TestPathFS
         final Path target =  Paths.get("src", "binks", "resources");
 
         final URI outerPathFsUri = new URI("path://outer");
-        final Map<String, ?> outerFsArgs = ImmutableMap.of("packagePath", target);
+        final Map<String, ?> outerFsArgs = createMap("packagePath", target);
 
         final FileSystem outerPathFS = FileSystems.newFileSystem(outerPathFsUri, outerFsArgs);
         final Path pathInOuterFS = outerPathFS.getPath("dir1.zip");
 
         final URI innerPathFsUri = new URI("path://inner");
-        final Map<String, ?> innerFsArgs = ImmutableMap.of("packagePath", pathInOuterFS);
+        final Map<String, ?> innerFsArgs = createMap("packagePath", pathInOuterFS);
 
         final FileSystem innerPathFS = FileSystems.newFileSystem(innerPathFsUri, innerFsArgs);
         final byte[] pathFsData = Files.readAllBytes(innerPathFS.getPath(""));
@@ -211,13 +211,13 @@ public class TestPathFS
         final Path target =  Paths.get("src", "binks", "resources");
 
         final URI outerPathFsUri = new URI("path://outer");
-        final Map<String, ?> outerFsArgs = ImmutableMap.of("packagePath", target);
+        final Map<String, ?> outerFsArgs = createMap("packagePath", target);
 
         final FileSystem outerPathFS = FileSystems.newFileSystem(outerPathFsUri, outerFsArgs);
         final Path pathInOuterFS = outerPathFS.getPath("/dir1.zip");
 
         final URI innerPathFsUri = new URI("path://inner");
-        final Map<String, ?> innerFsArgs = ImmutableMap.of("packagePath", pathInOuterFS);
+        final Map<String, ?> innerFsArgs = createMap("packagePath", pathInOuterFS);
 
         final FileSystem innerPathFS = FileSystems.newFileSystem(innerPathFsUri, innerFsArgs);
         final byte[] pathFsData = Files.readAllBytes(innerPathFS.getPath("/"));
@@ -232,13 +232,13 @@ public class TestPathFS
         final Path target =  Paths.get("src", "binks", "resources");
 
         final URI outerPathFsUri = new URI("path://outer");
-        final Map<String, ?> outerFsArgs = ImmutableMap.of("packagePath", target);
+        final Map<String, ?> outerFsArgs = createMap("packagePath", target);
 
         final FileSystem outerPathFS = FileSystems.newFileSystem(outerPathFsUri, outerFsArgs);
         final Path pathInOuterFS = outerPathFS.getPath("dir1.zip");
 
         final URI innerPathFsUri = new URI("path://inner");
-        final Map<String, ?> innerFsArgs = ImmutableMap.of("packagePath", pathInOuterFS);
+        final Map<String, ?> innerFsArgs = createMap("packagePath", pathInOuterFS);
 
         final FileSystem innerPathFS = FileSystems.newFileSystem(innerPathFsUri, innerFsArgs);
         final Path pathInPathFS = innerPathFS.getPath("subdir1");
@@ -255,13 +255,13 @@ public class TestPathFS
         final Path target =  Paths.get("src", "binks", "resources");
 
         final URI outerPathFsUri = new URI("path://outer");
-        final Map<String, ?> outerFsArgs = ImmutableMap.of("packagePath", target);
+        final Map<String, ?> outerFsArgs = createMap("packagePath", target);
 
         final FileSystem outerPathFS = FileSystems.newFileSystem(outerPathFsUri, outerFsArgs);
         final Path pathInOuterFS = outerPathFS.getPath("dir1.zip");
 
         final URI innerPathFsUri = new URI("path://inner");
-        final Map<String, ?> innerFsArgs = ImmutableMap.of("packagePath", pathInOuterFS);
+        final Map<String, ?> innerFsArgs = createMap("packagePath", pathInOuterFS);
 
         //Needs to be created so that the name for the inner fs is known.
         final FileSystem innerPathFS = FileSystems.newFileSystem(innerPathFsUri, innerFsArgs);
@@ -280,13 +280,13 @@ public class TestPathFS
         final Path target =  Paths.get("src", "binks", "resources");
 
         final URI outerPathFsUri = new URI("path://outer");
-        final Map<String, ?> outerFsArgs = ImmutableMap.of("packagePath", target);
+        final Map<String, ?> outerFsArgs = createMap("packagePath", target);
 
         final FileSystem outerPathFS = FileSystems.newFileSystem(outerPathFsUri, outerFsArgs);
         final Path pathInOuterFS = outerPathFS.getPath("/dir1.zip");
 
         final URI innerPathFsUri = new URI("path://inner");
-        final Map<String, ?> innerFsArgs = ImmutableMap.of("packagePath", pathInOuterFS);
+        final Map<String, ?> innerFsArgs = createMap("packagePath", pathInOuterFS);
 
         final FileSystem innerPathFS = FileSystems.newFileSystem(innerPathFsUri, innerFsArgs);
         final Path pathInPathFS = innerPathFS.getPath("/subdir1");
@@ -303,13 +303,13 @@ public class TestPathFS
         final Path target =  Paths.get("src", "binks", "resources");
 
         final URI outerPathFsUri = new URI("path://outer");
-        final Map<String, ?> outerFsArgs = ImmutableMap.of("packagePath", target);
+        final Map<String, ?> outerFsArgs = createMap("packagePath", target);
 
         final FileSystem outerPathFS = FileSystems.newFileSystem(outerPathFsUri, outerFsArgs);
         final Path pathInOuterFS = outerPathFS.getPath("/dir1.zip");
 
         final URI innerPathFsUri = new URI("path://inner");
-        final Map<String, ?> innerFsArgs = ImmutableMap.of("packagePath", pathInOuterFS);
+        final Map<String, ?> innerFsArgs = createMap("packagePath", pathInOuterFS);
 
         //Needs to be created so that the name for the inner fs is known.
         final FileSystem innerPathFS = FileSystems.newFileSystem(innerPathFsUri, innerFsArgs);
@@ -322,5 +322,10 @@ public class TestPathFS
         assertEquals("subdir1",pathInPathFS.toString());
     }
 
+    private static Map<String, Object> createMap(final String key, final Object o) {
+        final HashMap<String, Object> map = new HashMap<>();
+        map.put(key, o);
+        return map;
+    }
 
 }

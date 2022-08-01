@@ -10,6 +10,9 @@
         <option name="modules">
           <set>
             <option value="$PROJECT_DIR$" />
+            <option value="$PROJECT_DIR$/filesystems" />
+            <option value="$PROJECT_DIR$/metadata" />
+            <option value="$PROJECT_DIR$/selector" />
           </set>
         </option>
       </GradleProjectSettings>

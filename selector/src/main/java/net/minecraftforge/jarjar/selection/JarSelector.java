@@ -2,7 +2,7 @@ package net.minecraftforge.jarjar.selection;
 
 import com.google.common.collect.*;
 import net.minecraftforge.jarjar.metadata.*;
-import net.minecraftforge.jarjar.util.Constants;
+import net.minecraftforge.jarjar.selection.util.Constants;
 import org.apache.maven.artifact.versioning.ArtifactVersion;
 import org.apache.maven.artifact.versioning.VersionRange;
 import org.slf4j.Logger;

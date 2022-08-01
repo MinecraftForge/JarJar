@@ -1,12 +1,12 @@
 package net.minecraftforge.jarjar.nio.layfs;
 
-import com.google.common.collect.ImmutableList;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.*;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 
@@ -27,7 +27,7 @@ public class TestLayeredZipFS
 
         final Path pathInText = zipFS.getPath("masktest.txt");
         final List<String> lines = Files.readAllLines(pathInText);
-        final List<String> sourceLines = ImmutableList.of("dir1");
+        final List<String> sourceLines = Collections.singletonList("dir1");
 
         assertIterableEquals(sourceLines, lines);
     }

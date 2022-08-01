@@ -10,3 +10,11 @@ pluginManagement {
 }
 
 rootProject.name = 'JarJar'
+
+include('filesystems')
+include('metadata')
+include('selector')
+
+project(':filesystems').name = 'JarJarFileSystems'
+project(':metadata').name = 'JarJarMetadata'
+project(':selector').name = 'JarJarSelector'

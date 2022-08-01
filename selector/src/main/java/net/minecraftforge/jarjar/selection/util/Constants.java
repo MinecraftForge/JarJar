@@ -1,4 +1,4 @@
-package net.minecraftforge.jarjar.util;
+package net.minecraftforge.jarjar.selection.util;
 
 public class Constants
 {

@@ -1,6 +1,5 @@
 package net.minecraftforge.jarjar.nio.pathfs;
 
-import com.google.common.collect.ImmutableMap;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -11,6 +10,7 @@ import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -22,7 +22,7 @@ public class ZipFsPathFsCompatTests {
     {
         final Path windowsPath = Paths.get("src/binks/resources/dir1.zip");
         FileSystem jarFs = FileSystems.newFileSystem(URI.create("jar:" + windowsPath.toUri()), new HashMap<>());
-        FileSystem pathFs = FileSystems.newFileSystem(URI.create("path:///test"), ImmutableMap.of("packagePath", Paths.get("src/binks/resources/dir1.zip")));
+        FileSystem pathFs = FileSystems.newFileSystem(URI.create("path:///test"), createMap("packagePath", Paths.get("src/binks/resources/dir1.zip")));
 
         assertEquals(
                 jarFs.getPath("/abc/xyz").relativize(jarFs.getPath("/abc/def/ghi")).toString(),
@@ -38,7 +38,7 @@ public class ZipFsPathFsCompatTests {
     {
         final Path windowsPath = Paths.get("src/binks/resources/dir1.zip");
         FileSystem jarFs = FileSystems.newFileSystem(URI.create("jar:" + windowsPath.toUri()), new HashMap<>());
-        FileSystem pathFs = FileSystems.newFileSystem(URI.create("path:///test"), ImmutableMap.of("packagePath", Paths.get("src/binks/resources/dir1.zip")));
+        FileSystem pathFs = FileSystems.newFileSystem(URI.create("path:///test"), createMap("packagePath", Paths.get("src/binks/resources/dir1.zip")));
 
         assertEquals(
                 jarFs.getPath("/abc/xyz").getNameCount(),
@@ -54,7 +54,7 @@ public class ZipFsPathFsCompatTests {
     {
         final Path windowsPath = Paths.get("src/binks/resources/dir1.zip");
         FileSystem jarFs = FileSystems.newFileSystem(URI.create("jar:" + windowsPath.toUri()), new HashMap<>());
-        FileSystem pathFs = FileSystems.newFileSystem(URI.create("path:///test"), ImmutableMap.of("packagePath", Paths.get("src/binks/resources/dir1.zip")));
+        FileSystem pathFs = FileSystems.newFileSystem(URI.create("path:///test"), createMap("packagePath", Paths.get("src/binks/resources/dir1.zip")));
 
         //NOTE: This should normally be equals but in this particular case we do not want the FS spec for the ZIP since it
         // fails in the case of the root for the use of PathFS in FML when it detects filenames.
@@ -72,7 +72,7 @@ public class ZipFsPathFsCompatTests {
     {
         final Path windowsPath = Paths.get("src/binks/resources/dir1.zip");
         FileSystem jarFs = FileSystems.newFileSystem(URI.create("jar:" + windowsPath.toUri()), new HashMap<>());
-        FileSystem pathFs = FileSystems.newFileSystem(URI.create("path:///test"), ImmutableMap.of("packagePath", windowsPath));
+        FileSystem pathFs = FileSystems.newFileSystem(URI.create("path:///test"), createMap("packagePath", windowsPath));
 
         assertEquals(
                 jarFs.getPath("").getParent(),
@@ -81,5 +81,11 @@ public class ZipFsPathFsCompatTests {
 
         jarFs.close();
         pathFs.close();
+    }
+
+    private static Map<String, Object> createMap(final String key, final Object o) {
+        final HashMap<String, Object> map = new HashMap<>();
+        map.put(key, o);
+        return map;
     }
 }

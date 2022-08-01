@@ -1,0 +1,18 @@
+plugins {
+    id 'net.minecraftforge.gradleutils'
+    id 'java-library'
+    id 'maven-publish'
+}
+
+dependencies {
+    api group: 'org.apache.maven', name: 'maven-artifact', version: "${apacheMavenVersion}"
+    api group: 'com.google.code.gson', name: 'gson', version: "${gsonVersion}"
+    api group: 'com.google.guava', name: 'guava', version:"${guavaVersion}"
+
+    api group: 'com.machinezoo.noexception', name:'noexception', version:"${noExceptionsVersion}"
+    api group: 'org.slf4j', name:'slf4j-api', version:"${slf4jVersion}"
+    runtimeOnly group:'org.slf4j', name: 'slf4j-simple', version:"${slf4jVersion}"
+
+    testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: "${junitVersion}"
+    testRuntimeOnly group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: "${junitVersion}"
+}
