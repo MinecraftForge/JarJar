@@ -1,6 +1,5 @@
 package net.minecraftforge.jarjar.nio.layzip;
 
-import com.google.common.collect.ImmutableMap;
 import net.minecraftforge.jarjar.nio.pathfs.PathFileSystemProvider;
 import net.minecraftforge.jarjar.nio.pathfs.PathPath;
 
@@ -11,6 +10,7 @@ import java.net.URISyntaxException;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
@@ -86,7 +86,9 @@ public class LayeredZipFileSystemProvider extends PathFileSystemProvider
 
     private FileSystem getOrCreateNewSystem(String keyPrefix, final Path path)
     {
-        final Map<String, ?> args = ImmutableMap.of("packagePath", path.toAbsolutePath());
+        final Map<String, Object> args = new HashMap<>();
+        args.put("packagePath", path.toAbsolutePath());
+
         try
         {
             return super.newFileSystem(new URI(super.getScheme() + ":" + keyPrefix + path.toString()
@@ -164,6 +166,7 @@ public class LayeredZipFileSystemProvider extends PathFileSystemProvider
         return path.toAbsolutePath().toUri().getRawSchemeSpecificPart();
     }
 
+    @SuppressWarnings("resource")
     @Override
     public Path adaptResolvedPath(final PathPath path)
     {
@@ -176,15 +179,14 @@ public class LayeredZipFileSystemProvider extends PathFileSystemProvider
         final FileSystem workingSystem;
         try
         {
-            workingSystem = FileSystems.newFileSystem(workingPath.toUri(), ImmutableMap.of());
+            workingSystem = FileSystems.newFileSystem(workingPath.toUri(), new HashMap<>());
+            return workingSystem.getPath(path.endsWith(PATH_SEPERATOR) ? "/" : path.toString()
+                                                                                   .substring(path.toString()
+                                                                                                  .lastIndexOf(PATH_SEPERATOR) + 2));
         } catch (IOException e)
         {
             throw new IllegalArgumentException("Failed to get sub file system for path!", e);
         }
-
-        return workingSystem.getPath(path.endsWith(PATH_SEPERATOR) ? "/" : path.toString()
-                                                                               .substring(path.toString()
-                                                                                         .lastIndexOf(PATH_SEPERATOR) + 2));
     }
 
     @Override

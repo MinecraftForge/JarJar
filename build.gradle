@@ -1,9 +1,5 @@
-// Configure Auto Relocation
-import com.github.jengelman.gradle.plugins.shadow.tasks.ConfigureShadowRelocation
-
 plugins {
     id 'net.minecraftforge.gradleutils'
-    id 'com.github.johnrengelman.shadow' version '7.1.2'
     id 'java-library'
     id 'maven-publish'
 }
@@ -13,6 +9,11 @@ version = gradleutils.getTagOffsetVersion()
 println('Version: ' + version)
 
 sourceSets {
+    filesystems {
+        java {
+            srcDir file('src/filesystems/java')
+        }
+    }
     test {
         java {
             srcDir file('src/binks/java')
@@ -53,6 +54,7 @@ dependencies {
     api group: 'org.slf4j', name:'slf4j-api', version:"${slf4jVersion}"
     runtimeOnly group:'org.slf4j', name: 'slf4j-simple', version:"${slf4jVersion}"
 
+    testImplementation sourceSets.filesystems.output
     testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: "${junitVersion}"
     testRuntimeOnly group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: "${junitVersion}"
 }
@@ -61,17 +63,19 @@ test {
     useJUnitPlatform()
 }
 
-task relocateShadowJar(type: ConfigureShadowRelocation) {
-    target = tasks.shadowJar
-    prefix = "net.minecraftforge.jarjar.thedarkside"
+tasks.register('fileSystemsJar', Jar) {
+    archivesBaseName = 'filesystems'
+    from sourceSets.filesystems.output
 }
-
-tasks.shadowJar.dependsOn tasks.relocateShadowJar
 
 publishing {
     publications {
         mavenJava(MavenPublication) {
             from components.java
+
+            artifact tasks.fileSystemsJar {
+                classifier = 'filesystems'
+            }
 
             pom {
                 name = project.name
@@ -105,5 +109,5 @@ publishing {
 }
 
 changelog {
-    fromTag '0.2'
+    fromTag '0.3'
 }

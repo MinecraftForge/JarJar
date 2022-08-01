@@ -1,9 +1,7 @@
 package net.minecraftforge.jarjar.nio.pathfs;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import net.minecraftforge.jarjar.util.LambdaExceptionUtils;
-import net.minecraftforge.jarjar.util.Lazy;
+import net.minecraftforge.jarjar.nio.util.LambdaExceptionUtils;
+import net.minecraftforge.jarjar.nio.util.Lazy;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -123,13 +121,13 @@ public class PathFileSystem extends FileSystem
     @Override
     public Iterable<FileStore> getFileStores()
     {
-        return ImmutableList.of();
+        return Collections.emptyList();
     }
 
     @Override
     public Set<String> supportedFileAttributeViews()
     {
-        return ImmutableSet.of("basic");
+        return Collections.singleton("basic");
     }
 
     public SeekableByteChannel newByteChannel(final Path path, final Set<? extends OpenOption> options, final FileAttribute<?>... attrs) throws IOException
