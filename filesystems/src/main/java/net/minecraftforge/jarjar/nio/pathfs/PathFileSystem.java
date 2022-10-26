@@ -220,4 +220,8 @@ public class PathFileSystem extends FileSystem
     {
         return target;
     }
+
+    public void checkAccess(Path path, AccessMode... modes) throws IOException {
+        innerSystem.get().provider().checkAccess(getOuterTarget(path), modes);
+    }
 }

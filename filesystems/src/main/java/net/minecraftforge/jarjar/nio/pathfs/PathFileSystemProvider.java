@@ -175,7 +175,12 @@ public class PathFileSystemProvider extends FileSystemProvider {
 
     @Override
     public void checkAccess(final Path path, final AccessMode... modes) throws IOException {
-        //Noop for now.
+        if (path instanceof PathPath) {
+            final PathPath up = (PathPath) path;
+            up.getFileSystem().checkAccess(path, modes);
+            return;
+        }
+        throw new UnsupportedOperationException();
     }
 
     @Override

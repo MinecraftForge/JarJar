@@ -5,10 +5,7 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.file.FileSystem;
-import java.nio.file.FileSystems;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.nio.file.*;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -77,6 +74,33 @@ public class ZipFsPathFsCompatTests {
         assertEquals(
                 jarFs.getPath("").getParent(),
                 pathFs.getPath("").getParent()
+        );
+
+        jarFs.close();
+        pathFs.close();
+    }
+
+    @Test
+    public void existsTest() throws URISyntaxException, IOException
+    {
+        final Path windowsPath = Paths.get("src/binks/resources/dir1.zip");
+        FileSystem jarFs = FileSystems.newFileSystem(URI.create("jar:" + windowsPath.toUri()), new HashMap<>());
+        FileSystem pathFs = FileSystems.newFileSystem(URI.create("path:///test"), createMap("packagePath", windowsPath));
+
+        Path existingInJarFs = jarFs.getPath("masktest.txt");
+        Path existingInPathFs = pathFs.getPath("masktest.txt");
+
+        Path notExistingInJarFs = jarFs.getPath("masktest.txt2.doesnotexist");
+        Path notExistingInPathFs = pathFs.getPath("masktest.txt2.doesnotexist");
+
+        assertEquals(
+                Files.exists(existingInJarFs),
+                Files.exists(existingInPathFs)
+        );
+
+        assertEquals(
+                Files.exists(notExistingInJarFs),
+                Files.exists(notExistingInPathFs)
         );
 
         jarFs.close();
