@@ -167,6 +167,9 @@ public class PathPath extends AbstractPath implements Path {
     @Override
     public Path relativize(final Path other) {
         if (other.getFileSystem()!=this.getFileSystem()) throw new IllegalArgumentException("Wrong filesystem");
+        if (this.equals(getRoot()) && other.equals(other.getRoot())) {
+            return this;
+        }
         if (other instanceof PathPath) {
             final PathPath p = (PathPath) other;
             final int poff = p.isAbsolute() ? 1 : 0;

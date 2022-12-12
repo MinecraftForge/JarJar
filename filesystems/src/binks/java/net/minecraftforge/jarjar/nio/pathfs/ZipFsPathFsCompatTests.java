@@ -87,11 +87,19 @@ public class ZipFsPathFsCompatTests {
         FileSystem jarFs = FileSystems.newFileSystem(URI.create("jar:" + windowsPath.toUri()), new HashMap<>());
         FileSystem pathFs = FileSystems.newFileSystem(URI.create("path:///test"), createMap("packagePath", windowsPath));
 
+        Path rootInJarFs = jarFs.getPath("/");
+        Path rootInPathFs = pathFs.getPath("/");
+
         Path existingInJarFs = jarFs.getPath("masktest.txt");
         Path existingInPathFs = pathFs.getPath("masktest.txt");
 
         Path notExistingInJarFs = jarFs.getPath("masktest.txt2.doesnotexist");
         Path notExistingInPathFs = pathFs.getPath("masktest.txt2.doesnotexist");
+
+        assertEquals(
+                Files.exists(rootInJarFs),
+                Files.exists(rootInPathFs)
+        );
 
         assertEquals(
                 Files.exists(existingInJarFs),
