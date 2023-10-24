@@ -1,17 +1,23 @@
+import net.minecraftforge.gradleutils.PomUtils
+
 plugins {
     id 'net.minecraftforge.gradleutils'
     id 'java-library'
     id 'maven-publish'
+    id 'org.cadixdev.licenser' version '0.6.1'
 }
 
 group = 'net.minecraftforge'
 version = gradleutils.getTagOffsetVersion()
-println('Version: ' + version)
+println "Version: $version"
 
-subprojects { subproject ->
+subprojects { Project subproject ->
 
-    subproject.apply plugin: 'java-library'
-    subproject.apply plugin: 'maven-publish'
+    subproject.apply {
+        plugin 'java-library'
+        plugin 'maven-publish'
+        plugin 'org.cadixdev.licenser'
+    }
 
     subproject.group = 'net.minecraftforge'
     subproject.version = rootProject.version
@@ -25,14 +31,6 @@ subprojects { subproject ->
         }
     }
 
-    repositories {
-        mavenCentral()
-        maven {
-            name 'Forge'
-            url 'https://maven.minecraftforge.net/'
-        }
-    }
-
     java {
         toolchain {
             languageVersion = JavaLanguageVersion.of(17)
@@ -40,27 +38,32 @@ subprojects { subproject ->
         withSourcesJar()
     }
 
-    project.tasks.withType(JavaCompile).all {
-        JavaToolchainService service = getProject().getExtensions().getByType(JavaToolchainService.class);
-        Provider<JavaCompiler> compiler = service.compilerFor(s -> s.getLanguageVersion().set(JavaLanguageVersion.of(8)));
-
-        it.javaCompiler = compiler;
+    repositories {
+        mavenCentral()
+        maven gradleutils.forgeMaven
     }
 
     dependencies {
-        testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: "${junitVersion}"
-        testRuntimeOnly group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: "${junitVersion}"
+        testImplementation libs.junit.api
+        testRuntimeOnly libs.junit.engine
     }
 
-    test {
+    project.tasks.withType(JavaCompile).configureEach {
+        JavaToolchainService service = project.extensions.getByType(JavaToolchainService)
+        Provider<JavaCompiler> compiler = service.compilerFor(s -> s.languageVersion.set(JavaLanguageVersion.of(8)))
+
+        javaCompiler = compiler
+    }
+
+    tasks.named('test', Test).configure {
         useJUnitPlatform()
     }
 
-    processTestResources {
+    tasks.named('processTestResources', ProcessResources).configure {
         duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     }
 
-    jar {
+    tasks.named('jar', Jar).configure {
         manifest {
             attributes([
                     'Maven-Artifact'          : "${project.group}:${project.archivesBaseName}:${project.version}",
@@ -70,43 +73,38 @@ subprojects { subproject ->
                     "Implementation-Title"    : project.name,
                     "Implementation-Version"  : "${project.version}",
                     "Implementation-Vendor"   : "Minecraft Forge",
-                    "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"),
                     "Automatic-Module-Name"   : project.name,
             ])
         }
     }
 
+    license {
+        header = file('../header.txt')
+        newLine = false
+        exclude '**/*.properties'
+    }
+
     publishing {
-        publications {
-            mavenJava(MavenPublication) {
-                from components.java
+        publications.register('mavenJava', MavenPublication) {
+            from components.java
 
-                pom {
-                    name = project.name
-                    description = 'Jar in Jar Utilities including the required NIO FileSystems. SubSystem: ' + project.name
-                    url = 'https://github.com/MinecraftForge/JarJar'
+            pom {
+                name = project.name
+                description = 'Jar in Jar Utilities including the required NIO FileSystems. SubSystem: ' + project.name
+                url = 'https://github.com/MinecraftForge/JarJar'
 
-                    scm {
-                        url = 'https://github.com/MinecraftForge/JarJar'
-                        connection = 'scm:git:git://github.com/MinecraftForge/JarJar.git'
-                        developerConnection = 'scm:git:git@github.com:MinecraftForge/JarJar.git'
-                    }
+                PomUtils.setGitHubDetails(pom, 'JarJar')
 
-                    issueManagement {
-                        system = 'github'
-                        url = 'https://github.com/MinecraftForge/JarJar/issues'
-                    }
-
-                    licenses {
-                        license {
-                            name = 'LGPL 2.1'
-                            url = 'https://github.com/MinecraftForge/JarJar/blob/main/LICENSE'
-                            distribution = 'repo'
-                        }
+                licenses {
+                    license {
+                        name = 'LGPL 2.1'
+                        url = 'https://github.com/MinecraftForge/JarJar/blob/main/LICENSE'
+                        distribution = 'repo'
                     }
                 }
             }
         }
+
         repositories {
             maven gradleutils.getPublishingForgeMaven()
         }
