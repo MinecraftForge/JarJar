@@ -95,13 +95,7 @@ subprojects { Project subproject ->
 
                 PomUtils.setGitHubDetails(pom, 'JarJar')
 
-                licenses {
-                    license {
-                        name = 'LGPL 2.1'
-                        url = 'https://github.com/MinecraftForge/JarJar/blob/main/LICENSE'
-                        distribution = 'repo'
-                    }
-                }
+                license PomUtils.Licenses.LGPLv2_1
             }
         }
 
