@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) Forge Development LLC
+ * SPDX-License-Identifier: LGPL-2.1-only
+ */
 package net.minecraftforge.jarjar.nio.pathfs;
 
 import net.minecraftforge.jarjar.nio.util.LambdaExceptionUtils;
@@ -49,7 +53,7 @@ public class PathFileSystem extends FileSystem
             final List<Path> possibleRootDirectories = new ArrayList<>();
             fileSystem.getRootDirectories().forEach(possibleRootDirectories::add);
 
-            if (possibleRootDirectories.size() > 0) {
+            if (!possibleRootDirectories.isEmpty()) {
                 for (final Path possibleRootDirectory : possibleRootDirectories)
                 {
                     if (possibleRootDirectory.getClass() != target.getClass()) {
