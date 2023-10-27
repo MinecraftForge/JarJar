@@ -13,7 +13,7 @@ jobs:
     with:
       java: 8
       gradle_tasks: "publish"
-      artifact_name: "JarJar"
+      artifact_names: "JarJarMetadata,JarJarFilesystems,JarJarSelector"
     secrets:
       DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
       PROMOTE_ARTIFACT_WEBHOOK: ${{ secrets.PROMOTE_ARTIFACT_WEBHOOK }}
