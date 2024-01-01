@@ -1,17 +1,3 @@
-pluginManagement {
-    repositories {
-        gradlePluginPortal()
-        maven {
-            name = 'MinecraftForge'
-            url = 'https://maven.minecraftforge.net/'
-        }
-    }
-
-    plugins {
-        id 'net.minecraftforge.gradleutils' version '2.+'
-    }
-}
-
 plugins {
     id 'org.gradle.toolchains.foojay-resolver-convention' version '0.7.0'
 }

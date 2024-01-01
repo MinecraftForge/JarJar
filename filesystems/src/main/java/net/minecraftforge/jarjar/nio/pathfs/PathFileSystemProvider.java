@@ -96,11 +96,7 @@ public class PathFileSystemProvider extends FileSystemProvider {
     }
 
     private String makeKey(URI uri) {
-        final String keyValue = uri.getRawSchemeSpecificPart();
-        if (keyValue.startsWith("//"))
-            return keyValue.substring(2);
-
-        return keyValue;
+        return uri.normalize().getRawSchemeSpecificPart();
     }
 
     private String makeKey(Path path) {

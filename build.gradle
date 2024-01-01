@@ -1,14 +1,14 @@
 import net.minecraftforge.gradleutils.PomUtils
 
 plugins {
-    id 'net.minecraftforge.gradleutils'
     id 'java-library'
     id 'maven-publish'
-    id 'org.cadixdev.licenser' version '0.6.1'
+    id 'net.minecraftforge.licenser' version '1.0.1'
+    id 'net.minecraftforge.gradleutils' version '[2.3,2.4)'
 }
 
 group = 'net.minecraftforge'
-version = gradleutils.getTagOffsetVersion()
+version = gradleutils.tagOffsetVersion
 println "Version: $version"
 
 subprojects { Project subproject ->
@@ -16,7 +16,7 @@ subprojects { Project subproject ->
     subproject.apply {
         plugin 'java-library'
         plugin 'maven-publish'
-        plugin 'org.cadixdev.licenser'
+        plugin 'net.minecraftforge.licenser'
     }
 
     subproject.group = 'net.minecraftforge'
@@ -100,12 +100,12 @@ subprojects { Project subproject ->
         }
 
         repositories {
-            maven gradleutils.getPublishingForgeMaven()
+            maven gradleutils.publishingForgeMaven
         }
     }
 
 }
 
 changelog {
-    fromTag '0.3'
+    from '0.3'
 }
