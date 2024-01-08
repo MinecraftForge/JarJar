@@ -10,59 +10,46 @@ import java.nio.file.Path;
 import java.util.Iterator;
 import java.util.function.Function;
 
-class PathFSUtils
-{
-
-    private PathFSUtils()
-    {
+class PathFSUtils {
+    private PathFSUtils() {
         throw new IllegalStateException("Can not instantiate an instance of: PathFSUtils. This is a utility class");
     }
 
-    public static final DirectoryStream<Path> NULL_STREAM = new DirectoryStream<Path>()
-    {
+    public static final DirectoryStream<Path> NULL_STREAM = new DirectoryStream<Path>() {
         @Override
-        public Iterator<Path> iterator()
-        {
-            return new Iterator<Path>()
-            {
+        public Iterator<Path> iterator() {
+            return new Iterator<Path>() {
                 @Override
-                public boolean hasNext()
-                {
+                public boolean hasNext() {
                     return false;
                 }
 
                 @Override
-                public Path next()
-                {
+                public Path next() {
                     return null;
                 }
             };
         }
 
         @Override
-        public void close() throws IOException
-        {
-
+        public void close() throws IOException {
         }
     };
 
     public static DirectoryStream<Path> adapt(final DirectoryStream<Path> inner, final Function<Path, Path> adapter) {
         return new DirectoryStream<Path>() {
             @Override
-            public Iterator<Path> iterator()
-            {
+            public Iterator<Path> iterator() {
                 final Iterator<Path> targetIterator = inner.iterator();
 
                 return new Iterator<Path>() {
                     @Override
-                    public boolean hasNext()
-                    {
+                    public boolean hasNext() {
                         return targetIterator.hasNext();
                     }
 
                     @Override
-                    public Path next()
-                    {
+                    public Path next() {
                         final Path targetPath = targetIterator.next();
                         return adapter.apply(targetPath);
                     }
@@ -70,8 +57,7 @@ class PathFSUtils
             }
 
             @Override
-            public void close() throws IOException
-            {
+            public void close() throws IOException {
                 inner.close();
             }
         };

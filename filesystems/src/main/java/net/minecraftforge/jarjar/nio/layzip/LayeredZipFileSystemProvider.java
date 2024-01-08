@@ -19,28 +19,23 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 
-public class LayeredZipFileSystemProvider extends PathFileSystemProvider
-{
+public class LayeredZipFileSystemProvider extends PathFileSystemProvider {
     public static final String SCHEME = "jij";
     public static final String URI_SPLIT_REGEX = COMPONENT_SEPERATOR;
 
-
     @Override
-    public String getScheme()
-    {
+    public String getScheme() {
         return SCHEME;
     }
 
     @Override
-    public FileSystem newFileSystem(final URI uri, final Map<String, ?> env) throws IOException
-    {
+    public FileSystem newFileSystem(final URI uri, final Map<String, ?> env) throws IOException {
         final String[] sections = uri.getRawSchemeSpecificPart().split(URI_SPLIT_REGEX);
 
         FileSystem workingSystem = FileSystems.getDefault(); //Grab the normal disk FS.
         String keyPrefix = "";
 
-        if (sections.length > 1)
-        {
+        if (sections.length > 1) {
             final AdaptedURIWithPrefixSelection adaptedURI = adaptUriSections(sections);
             keyPrefix = adaptedURI.getPrefix();
             workingSystem = adaptedURI.getFileSystem();
@@ -50,17 +45,11 @@ public class LayeredZipFileSystemProvider extends PathFileSystemProvider
         if (lastSection.startsWith("//"))
             lastSection = lastSection.substring(2);
 
-        if (env.containsKey("packagePath"))
-        { //User requests specific package as a target;
-            try
-            {
-                return super.newFileSystem(new URI(super.getScheme() + ":" + uri.getRawSchemeSpecificPart()),
-                        env);
-            } catch (Exception e)
-            {
-                throw new UncheckedIOException("Failed to create intermediary FS.", new IOException("Failed to " +
-                                                                                                    "process data.",
-                        e));
+        if (env.containsKey("packagePath")) { //User requests specific package as a target;
+            try {
+                return super.newFileSystem(new URI(super.getScheme() + ":" + uri.getRawSchemeSpecificPart()), env);
+            } catch (Exception e) {
+                throw new UncheckedIOException("Failed to create intermediary FS.", new IOException("Failed to process data.", e));
             }
         }
 
@@ -68,8 +57,7 @@ public class LayeredZipFileSystemProvider extends PathFileSystemProvider
         return getOrCreateNewSystem(keyPrefix, lastPath);
     }
 
-    private String handleAbsolutePrefixOnWindows(final FileSystem workingSystem, String section)
-    {
+    private String handleAbsolutePrefixOnWindows(final FileSystem workingSystem, String section) {
         if (workingSystem.getClass().getName().toLowerCase(Locale.ROOT).contains("windows"))
         {
             //This special casing is needed, since else the rooted paths crash on Windows system because:
@@ -83,24 +71,19 @@ public class LayeredZipFileSystemProvider extends PathFileSystemProvider
         return section;
     }
 
-    private FileSystem getOrCreateNewSystem(final Path path)
-    {
+    private FileSystem getOrCreateNewSystem(Path path) {
         return getOrCreateNewSystem("", path);
     }
 
-    private FileSystem getOrCreateNewSystem(String keyPrefix, final Path path)
-    {
+    private FileSystem getOrCreateNewSystem(String keyPrefix, Path path) {
         final Map<String, Object> args = new HashMap<>();
         args.put("packagePath", path.toAbsolutePath());
 
-        try
-        {
-            return super.newFileSystem(new URI(super.getScheme() + ":" + keyPrefix + path.toString()
-                                                                                         .replace("\\", "/")), args);
-        } catch (Exception e)
-        {
-            throw new UncheckedIOException("Failed to create intermediary FS.", new IOException("Failed to process " +
-                                                                                                "data.", e));
+        try {
+            URI uri = new URI(super.getScheme() + ':' + keyPrefix + path.toUri().toString().replace('\\', '/'));
+            return super.newFileSystem(uri, args);
+        } catch (Exception e) {
+            throw new UncheckedIOException("Failed to create intermediary FS.", new IOException("Failed to process data.", e));
         }
     }
 
@@ -210,8 +193,8 @@ public class LayeredZipFileSystemProvider extends PathFileSystemProvider
         //First try a reverse lookup of a key based approach:
         final Optional<FileSystem> rootKnownCandidateSystem = super.getFileSystemFromKey(sections[0]);
         if (rootKnownCandidateSystem.isPresent()) {
-            //Okey special case: We have a file system in the root that is known to us.
-            //We will recursively resolve this untill we have handled all sections:
+            //Okay special case: We have a file system in the root that is known to us.
+            //We will recursively resolve this until we have handled all sections:
             //First deal with the case that we do not have any other paths:
             if (sections.length == 1) {
                 return new AdaptedURIWithPrefixSelection(rootKnownCandidateSystem.get(), sections[0]);
@@ -254,19 +237,16 @@ public class LayeredZipFileSystemProvider extends PathFileSystemProvider
         private final String prefix;
         private final FileSystem fileSystem;
 
-        private AdaptedURIWithPrefixSelection(final FileSystem fileSystem, final String prefix)
-        {
+        private AdaptedURIWithPrefixSelection(final FileSystem fileSystem, final String prefix) {
             this.prefix = prefix;
             this.fileSystem = fileSystem;
         }
 
-        public String getPrefix()
-        {
+        public String getPrefix() {
             return prefix;
         }
 
-        public FileSystem getFileSystem()
-        {
+        public FileSystem getFileSystem() {
             return fileSystem;
         }
     }

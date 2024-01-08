@@ -34,7 +34,7 @@ public class PathFileSystemProvider extends FileSystemProvider {
 
     /**
      * Invoked by FileSystems.newFileSystem, Only returns a value if env contains an entry with the name of
-     *          "package" and Path targeting the file in question.
+     *          "packagePath" and Path targeting the file in question.
      * If not specified, throws IllegalArgumentException
      * If uri.getScheme() is not "path" throws IllegalArgumentException
      * If you wish to create a PathFileSystem explicitly, invoke newFileSystem(Path)
@@ -61,10 +61,9 @@ public class PathFileSystemProvider extends FileSystemProvider {
 
     /**
      * Invoked by FileSystems.newFileSystem, Only returns a value if env contains an entry with the name of
-     *          "package" and Path targeting the file in question.
+     *          "packagePath" and Path targeting the file in question.
      * If none specified, throws UnsupportedOperationException instead of IllegalArgumentException
      *   so that FileSystems.newFileSystem will search for the next provider.
-     * If you wish to create a UnionFileSystem explicitly, invoke newFileSystem(BiPredicate, Path...)
      */
     @Override
     public FileSystem newFileSystem(final Path path, final Map<String, ?> env) throws IOException {
@@ -112,31 +111,50 @@ public class PathFileSystemProvider extends FileSystemProvider {
         return path.getFileName().toString();
     }
 
+    private static class URIComponents {
+        String owner;
+        String path;
+
+        URIComponents(String owner, String path) {
+            this.owner = owner;
+            this.path = path;
+        }
+    }
+
+    private URIComponents parse(URI uri) {
+        String key = makeKey(uri);
+        int idx = key.lastIndexOf(COMPONENT_SEPERATOR);
+        if (idx == -1)
+            return new URIComponents(key, null);
+        String owner = key.substring(0, idx);
+        String path = key.substring(idx + 1);
+        return new URIComponents(owner, path);
+    }
+
+
     @Override
     public Path getPath(final URI uri) {
-        final String[] parts = uri.getRawSchemeSpecificPart().split(COMPONENT_SEPERATOR);
-        if (parts.length > 1) {
-            return getFileSystem(uri).getPath(parts[1]);
-        } else {
+        URIComponents parts = parse(uri);
+        if (parts.path != null)
+            return getFileSystem(uri).getPath(parts.path);
+        else
             return ((PathFileSystem)getFileSystem(uri)).getRoot();
-        }
     }
 
     @Override
     public FileSystem getFileSystem(URI uri) {
-    	String key = makeKey(uri);
-    	String owner = key.split(COMPONENT_SEPERATOR)[0];
-        FileSystem fs = fileSystems.get(owner);
+        URIComponents parts = parse(uri);
+        FileSystem fs = fileSystems.get(parts.owner);
 
         if (fs == null) {
-        	StringBuilder buf = new StringBuilder();
-        	buf.append("Unknown FileSystem: ").append(uri);
-        	buf.append('\n').append("\tOwner: ").append(owner);
-        	List<String> sorted = new ArrayList<>(fileSystems.keySet());
-        	Collections.sort(sorted);
-        	for (String known : sorted)
-        		buf.append('\n').append("\tKnown: ").append(known);
-        	throw new FileSystemNotFoundException(buf.toString());
+            StringBuilder buf = new StringBuilder();
+            buf.append("Unknown FileSystem: ").append(uri);
+            buf.append('\n').append("\tOwner: ").append(parts.owner);
+            List<String> sorted = new ArrayList<>(fileSystems.keySet());
+            Collections.sort(sorted);
+            for (String known : sorted)
+                buf.append('\n').append("\tKnown: ").append(known);
+            throw new FileSystemNotFoundException(buf.toString());
         }
 
         return fs;
@@ -235,32 +253,27 @@ public class PathFileSystemProvider extends FileSystemProvider {
         }
     }
 
-    protected URI buildUriFor(final PathPath path) throws URISyntaxException, IllegalArgumentException
-    {
+    protected URI buildUriFor(final PathPath path) throws URISyntaxException, IllegalArgumentException {
         return new URI(
-          path.getFileSystem().provider().getScheme(),
-                path.getFileSystem().getKey() + PATH_SEPERATOR + path,
-          null
+            path.getFileSystem().provider().getScheme(),
+            path.getFileSystem().getKey() + PATH_SEPERATOR + path,
+            null
         );
     }
 
-    protected Path createSubPath(final PathFileSystem pathFileSystem, final String... args)
-    {
+    protected Path createSubPath(final PathFileSystem pathFileSystem, final String... args) {
         return new PathPath(pathFileSystem, false, args);
     }
 
-    public Path adaptResolvedPath(final PathPath path)
-    {
+    public Path adaptResolvedPath(final PathPath path) {
         return path;
     }
 
-    public String[] adaptPathParts(final String longstring, final String[] pathParts)
-    {
+    public String[] adaptPathParts(final String longstring, final String[] pathParts) {
         return pathParts;
     }
 
-    protected Optional<FileSystem> getFileSystemFromKey(final String section)
-    {
+    protected Optional<FileSystem> getFileSystemFromKey(final String section) {
         return Optional.ofNullable(this.fileSystems.get(section));
     }
 }

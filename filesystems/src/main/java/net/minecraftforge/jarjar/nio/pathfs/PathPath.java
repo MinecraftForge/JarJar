@@ -40,12 +40,12 @@ public class PathPath extends AbstractPath implements Path {
         this.pathParts = innerPath.toString().replace("\\", "/").split("/");
     }
 
-    private String[] getPathParts(final String longstring) {
-        String[] localParts = longstring.equals(this.getFileSystem().getSeparator()) ? new String[] {""} : longstring.replace("\\", this.getFileSystem().getSeparator()).split(this.getFileSystem().getSeparator());
+    private String[] getPathParts(String longstring) {
+        String sep = this.getFileSystem().getSeparator();
+        String[] localParts = longstring.equals(sep) ? new String[] {""} : longstring.replace("\\", sep).split(sep);
 
-        if (localParts.length > 1 && localParts[0].isEmpty()) {
+        if (localParts.length > 1 && localParts[0].isEmpty())
             localParts = Arrays.copyOfRange(localParts, 1, localParts.length);
-        }
 
         if (this.getFileSystem().provider() != null)
             return this.getFileSystem().provider().adaptPathParts(longstring, localParts);
@@ -77,54 +77,57 @@ public class PathPath extends AbstractPath implements Path {
 
         return this.pathParts.length > 0 ? new PathPath(this.getFileSystem(), true, this.pathParts[this.pathParts.length-1]) : new PathPath(this.fileSystem, true, "");
     }
+
     @Override
     public Path getParent() {
-        if (this.pathParts.length > 0 && !(pathParts.length == 1 && pathParts[0].isEmpty())) {
+        if (this.pathParts.length > 0 && !(pathParts.length == 1 && pathParts[0].isEmpty()))
             return new PathPath(this.fileSystem, true, Arrays.copyOf(this.pathParts,this.pathParts.length - 1));
-        } else {
-            return null;
-        }
+        return null;
     }
+
     @Override
     public int getNameCount() {
         return this.pathParts.length;
     }
+
     @Override
     public Path getName(final int index) {
-        if (index < 0 || index > this.pathParts.length -1) throw new IllegalArgumentException();
+        if (index < 0 || index > this.pathParts.length - 1)
+            throw new IllegalArgumentException();
         return new PathPath(this.fileSystem, true, this.pathParts[index]);
     }
 
     @Override
     public Path subpath(final int beginIndex, final int endIndex) {
-        if (beginIndex < 0 || beginIndex > this.pathParts.length - 1 || endIndex < 0 || endIndex > this.pathParts.length || beginIndex > endIndex) {
-            throw new IllegalArgumentException("Out of range "+beginIndex+" to "+endIndex+" for length "+this.pathParts.length);
-        }
+        if (beginIndex < 0 || beginIndex > this.pathParts.length - 1 || endIndex < 0 || endIndex > this.pathParts.length || beginIndex > endIndex)
+            throw new IllegalArgumentException("Out of range " + beginIndex + " to " + endIndex + " for length " + this.pathParts.length);
         return new PathPath(this.fileSystem, true, Arrays.copyOfRange(this.pathParts, beginIndex, endIndex));
     }
 
     @Override
     public boolean startsWith(final Path other) {
-        if (other.getFileSystem() != this.getFileSystem()) {
+        if (other.getFileSystem() != this.getFileSystem())
             return false;
-        }
+
         if (other instanceof PathPath) {
             final PathPath bp = (PathPath) other;
             return checkArraysMatch(this.pathParts, bp.pathParts, false);
         }
+
         return false;
     }
 
 
     @Override
     public boolean endsWith(final Path other) {
-        if (other.getFileSystem() != this.getFileSystem()) {
+        if (other.getFileSystem() != this.getFileSystem())
             return false;
-        }
+
         if (other instanceof PathPath) {
             final PathPath bp = (PathPath) other;
             return checkArraysMatch(this.pathParts, bp.pathParts, true);
         }
+
         return false;
     }
 
@@ -160,10 +163,12 @@ public class PathPath extends AbstractPath implements Path {
     public Path resolve(final Path other) {
         if (other instanceof PathPath) {
             final PathPath path = (PathPath) other;
-            if (path.isAbsolute()) {
-                return this.getFileSystem().provider().adaptResolvedPath(path);
-            }
-            return this.getFileSystem().provider().adaptResolvedPath(new PathPath(this.fileSystem, false, this+fileSystem.getSeparator()+other));
+            PathFileSystemProvider provider = this.getFileSystem().provider();
+
+            if (path.isAbsolute())
+                return provider.adaptResolvedPath(path);
+
+            return provider.adaptResolvedPath(new PathPath(this.fileSystem, false, this + fileSystem.getSeparator() + other));
         }
         return other;
     }
