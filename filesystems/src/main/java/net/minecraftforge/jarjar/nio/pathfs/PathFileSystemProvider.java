@@ -14,7 +14,10 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileAttribute;
 import java.nio.file.attribute.FileAttributeView;
 import java.nio.file.spi.FileSystemProvider;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -120,10 +123,23 @@ public class PathFileSystemProvider extends FileSystemProvider {
     }
 
     @Override
-    public FileSystem getFileSystem(final URI uri) {
-        final String[] parts = uri.getRawSchemeSpecificPart().split(COMPONENT_SEPERATOR);
-        if (!fileSystems.containsKey(parts[0])) throw new FileSystemNotFoundException();
-        return fileSystems.get(parts[0]);
+    public FileSystem getFileSystem(URI uri) {
+    	String key = makeKey(uri);
+    	String owner = key.split(COMPONENT_SEPERATOR)[0];
+        FileSystem fs = fileSystems.get(owner);
+
+        if (fs == null) {
+        	StringBuilder buf = new StringBuilder();
+        	buf.append("Unknown FileSystem: ").append(uri);
+        	buf.append('\n').append("\tOwner: ").append(owner);
+        	List<String> sorted = new ArrayList<>(fileSystems.keySet());
+        	Collections.sort(sorted);
+        	for (String known : sorted)
+        		buf.append('\n').append("\tKnown: ").append(known);
+        	throw new FileSystemNotFoundException(buf.toString());
+        }
+
+        return fs;
     }
 
     @Override
