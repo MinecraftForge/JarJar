@@ -1,0 +1,17 @@
+pluginManagement {
+    repositories {
+        mavenCentral()
+        gradlePluginPortal()
+        maven { url = 'https://maven.minecraftforge.net' }
+    }
+
+    includeBuild '../jarjar-gradle'
+}
+
+plugins {
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
+}
+
+rootProject.name = 'jarjar-gradle-demo'
+
+include 'example-project'
