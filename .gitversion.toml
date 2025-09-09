@@ -1,0 +1,6 @@
+[root]
+exclude = [ "jarjar-gradle-demo" ]
+
+[gradlePlugin]
+path = "jarjar-gradle"
+tag = "gradle"

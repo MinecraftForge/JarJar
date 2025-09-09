@@ -13,6 +13,8 @@ plugins {
 
 rootProject.name = 'JarJar'
 
+includeBuild 'jarjar-gradle'
+includeBuild 'jarjar-gradle-demo'
 include 'filesystems', 'metadata', 'selector'
 
 project(':filesystems').name = 'JarJarFileSystems'

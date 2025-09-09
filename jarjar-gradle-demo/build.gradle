@@ -1,0 +1,31 @@
+plugins {
+    id 'java'
+    id 'net.minecraftforge.jarjar'
+}
+
+repositories {
+    mavenCentral()
+}
+
+// Creates the jarJar configuration. Use that.
+jarJar.register()
+
+dependencies {
+    implementation(jarJar(('org.apache.maven:maven-artifact:3.9.11'))) {
+        transitive = false
+        // this configures jarjar metadata.
+        jarJar.configure(it) {
+            version = '3.9.10'
+        }
+    }
+
+    jarJar(files('example-project.jar')) {
+        jarJar.configure(it) {
+            module {
+                group = 'me.jonathing'
+                name = 'example'
+            }
+            version = '1.0.0'
+        }
+    }
+}
