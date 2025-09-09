@@ -1,20 +1,11 @@
-plugins {
-    id 'net.minecraftforge.gradleutils'
-    id 'java-library'
-    id 'maven-publish'
-}
-
 dependencies {
     api projects.jarJarMetadata
 
-    api libs.apacheMaven
+    api libs.maven.artifact
     api libs.gson
     api libs.guava
 
-    api libs.noExceptions
+    api libs.noexception
     api libs.slf4j.api
     runtimeOnly libs.slf4j.simple
-
-    testImplementation libs.junit.api
-    testRuntimeOnly libs.junit.engine
 }

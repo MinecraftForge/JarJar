@@ -23,7 +23,7 @@ public class TestPathFS
     @Test
     public void redirectionTest() throws URISyntaxException, IOException
     {
-        final Path target =  Paths.get("src", "binks", "resources", "dir1.zip");
+        final Path target =  Paths.get("src", "test", "resources", "dir1.zip");
 
         final URI pathFsUri = new URI("path:///test");
         final Map<String, ?> args = createMap("packagePath", target);
@@ -41,7 +41,7 @@ public class TestPathFS
     @Test
     public void relativeDirectoryMapTest() throws URISyntaxException, IOException
     {
-        final Path target =  Paths.get("src", "binks");
+        final Path target =  Paths.get("src", "test");
 
         final URI pathFsUri = new URI("path://test");
         final Map<String, ?> args = createMap("packagePath", target);
@@ -62,7 +62,7 @@ public class TestPathFS
     @Test
     public void absoluteDirectoryMapTest() throws URISyntaxException, IOException
     {
-        final Path target =  Paths.get("src", "binks");
+        final Path target =  Paths.get("src", "test");
 
         final URI pathFsUri = new URI("path://test");
         final Map<String, ?> args = createMap("packagePath", target);
@@ -83,7 +83,7 @@ public class TestPathFS
     @Test
     public void relativePathToRelativeUriTest() throws URISyntaxException, IOException
     {
-        final Path target =  Paths.get("src", "binks");
+        final Path target =  Paths.get("src", "test");
 
         final URI pathFsUri = new URI("path://test");
         final Map<String, ?> args = createMap("packagePath", target);
@@ -101,7 +101,7 @@ public class TestPathFS
     @Test
     public void relativeUriToRelativePathTest() throws URISyntaxException, IOException
     {
-        final Path target =  Paths.get("src", "binks");
+        final Path target =  Paths.get("src", "test");
 
         final URI pathFsUri = new URI("path://test");
         final Map<String, ?> args = createMap("packagePath", target);
@@ -120,7 +120,7 @@ public class TestPathFS
     @Test
     public void absolutePathToAbsoluteUriTest() throws URISyntaxException, IOException
     {
-        final Path target =  Paths.get("src", "binks");
+        final Path target =  Paths.get("src", "test");
 
         final URI pathFsUri = new URI("path://test");
         final Map<String, ?> args = createMap("packagePath", target);
@@ -138,7 +138,7 @@ public class TestPathFS
     @Test
     public void absoluteUriToAbsolutePathTest() throws URISyntaxException, IOException
     {
-        final Path target =  Paths.get("src", "binks");
+        final Path target =  Paths.get("src", "test");
 
         final URI pathFsUri = new URI("path://test");
         final Map<String, ?> args = createMap("packagePath", target);
@@ -156,7 +156,7 @@ public class TestPathFS
     @Test
     public void relativePathToRelativeUriToRelativePathTest() throws URISyntaxException, IOException
     {
-        final Path target =  Paths.get("src", "binks");
+        final Path target =  Paths.get("src", "test");
 
         final URI pathFsUri = new URI("path://test");
         final Map<String, ?> args = createMap("packagePath", target);
@@ -173,7 +173,7 @@ public class TestPathFS
     @Test
     public void relativeUriToRelativePathToRelativeUriTest() throws URISyntaxException, IOException
     {
-        final Path target =  Paths.get("src", "binks");
+        final Path target =  Paths.get("src", "test");
 
         final URI pathFsUri = new URI("path://test");
         final Map<String, ?> args = createMap("packagePath", target);
@@ -191,7 +191,7 @@ public class TestPathFS
     @Test
     public void recursiveRelativeRedirectionTest() throws URISyntaxException, IOException
     {
-        final Path target =  Paths.get("src", "binks", "resources");
+        final Path target =  Paths.get("src", "test", "resources");
 
         final URI outerPathFsUri = new URI("path://outer");
         final Map<String, ?> outerFsArgs = createMap("packagePath", target);
@@ -212,7 +212,7 @@ public class TestPathFS
     @Test
     public void absoluteRelativeRedirectionTest() throws URISyntaxException, IOException
     {
-        final Path target =  Paths.get("src", "binks", "resources");
+        final Path target =  Paths.get("src", "test", "resources");
 
         final URI outerPathFsUri = new URI("path://outer");
         final Map<String, ?> outerFsArgs = createMap("packagePath", target);
@@ -233,7 +233,7 @@ public class TestPathFS
     @Test
     public void recursiveRelativePathToRelativeUriTest() throws URISyntaxException, IOException
     {
-        final Path target =  Paths.get("src", "binks", "resources");
+        final Path target =  Paths.get("src", "test", "resources");
 
         final URI outerPathFsUri = new URI("path://outer");
         final Map<String, ?> outerFsArgs = createMap("packagePath", target);
@@ -256,7 +256,7 @@ public class TestPathFS
     @Test
     public void recursiveRelativeUriToRelativePathTest() throws URISyntaxException, IOException
     {
-        final Path target =  Paths.get("src", "binks", "resources");
+        final Path target =  Paths.get("src", "test", "resources");
 
         final URI outerPathFsUri = new URI("path://outer");
         final Map<String, ?> outerFsArgs = createMap("packagePath", target);
@@ -281,7 +281,7 @@ public class TestPathFS
     @Test
     public void recursiveAbsolutePathToAbsoluteUriTest() throws URISyntaxException, IOException
     {
-        final Path target =  Paths.get("src", "binks", "resources");
+        final Path target =  Paths.get("src", "test", "resources");
 
         final URI outerPathFsUri = new URI("path://outer");
         final Map<String, ?> outerFsArgs = createMap("packagePath", target);
@@ -304,7 +304,7 @@ public class TestPathFS
     @Test
     public void recursiveAbsoluteUriToAbsolutePathTest() throws URISyntaxException, IOException
     {
-        final Path target =  Paths.get("src", "binks", "resources");
+        final Path target =  Paths.get("src", "test", "resources");
 
         final URI outerPathFsUri = new URI("path://outer");
         final Map<String, ?> outerFsArgs = createMap("packagePath", target);

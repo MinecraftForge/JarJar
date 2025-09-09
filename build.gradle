@@ -1,111 +1,108 @@
-import net.minecraftforge.gradleutils.PomUtils
+import net.minecraftforge.gradleutils.GradleUtilsExtensionForProject
+import net.minecraftforge.licenser.LicenseExtension
+import org.gradle.api.plugins.jvm.JvmTestSuite
+import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 
 plugins {
-    id 'java-library'
-    id 'maven-publish'
-    id 'net.minecraftforge.licenser' version '1.0.1'
-    id 'net.minecraftforge.gradleutils' version '[2.3,2.4)'
+    id 'io.freefair.javadoc-links' version '8.14' apply false
+    id 'net.minecraftforge.gradleutils' version '3.3.0' apply false
+    id 'net.minecraftforge.changelog' version '3.1.1'
+    id 'net.minecraftforge.licenser' version '1.2.0' apply false
 }
 
 group = 'net.minecraftforge'
-version = gradleutils.tagOffsetVersion
-println "Version: $version"
+//version set by git version in settings.gradle
 
-subprojects { Project subproject ->
+changelog {
+    from '0.3'
+    publishAll = true
+    includeSubprojects = true
+}
 
-    subproject.apply {
+subprojects {
+    apply {
         plugin 'java-library'
+        plugin 'jvm-test-suite'
+        plugin 'idea'
         plugin 'maven-publish'
+        plugin 'io.freefair.javadoc-links'
+        plugin 'net.minecraftforge.gradleutils'
+        plugin 'net.minecraftforge.changelog'
         plugin 'net.minecraftforge.licenser'
     }
 
-    subproject.group = 'net.minecraftforge'
-    subproject.version = rootProject.version
+    //noinspection GroovyAccessibility -- IntelliJ is stupid
+    final gradleutils = (GradleUtilsExtensionForProject) gradleutils
 
-    sourceSets {
-        test {
-            java {
-                srcDir file('src/binks/java')
-            }
-            resources.srcDir file('src/binks/resources')
-        }
-    }
+    description = 'Jar in Jar Utilities including the required NIO FileSystems. SubSystem: ' + project.name
+    group = 'net.minecraftforge'
+    //version set by git version in settings.gradle
 
-    java {
-        toolchain {
-            languageVersion = JavaLanguageVersion.of(17)
-        }
+    ((JavaPluginExtension) java).tap {
+        toolchain.languageVersion = JavaLanguageVersion.of(8)
         withSourcesJar()
     }
 
-    repositories {
-        mavenCentral()
-        maven gradleutils.forgeMaven
+    ((TestingExtension) testing).tap {
+        suites.named('test', JvmTestSuite) {
+            useJUnitJupiter(libs.versions.junit)
+
+            targets.configureEach {
+                testTask.configure {
+                    ignoreFailures = true
+                    javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(17) }
+                    testLogging { exceptionFormat = TestExceptionFormat.FULL }
+                }
+            }
+        }
     }
 
-    dependencies {
-        testImplementation libs.junit.api
-        testRuntimeOnly libs.junit.engine
-    }
-
-    project.tasks.withType(JavaCompile).configureEach {
-        JavaToolchainService service = project.extensions.getByType(JavaToolchainService)
-        Provider<JavaCompiler> compiler = service.compilerFor(s -> s.languageVersion.set(JavaLanguageVersion.of(8)))
-
-        javaCompiler = compiler
-    }
-
-    tasks.named('test', Test).configure {
-        useJUnitPlatform()
-    }
-
-    tasks.named('processTestResources', ProcessResources).configure {
+    tasks.named('processTestResources', ProcessResources) {
         duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     }
 
-    tasks.named('jar', Jar).configure {
+    tasks.named('jar', Jar) {
         manifest {
             attributes([
-                    'Maven-Artifact'          : "${project.group}:${project.archivesBaseName}:${project.version}",
-                    "Specification-Title"     : project.name,
-                    "Specification-Vendor"    : "Minecraft Forge",
-                    "Specification-Version"   : "1", // We are version 1 of ourselves
-                    "Implementation-Title"    : project.name,
-                    "Implementation-Version"  : "${project.version}",
-                    "Implementation-Vendor"   : "Minecraft Forge",
-                    "Automatic-Module-Name"   : project.name,
+                'Maven-Artifact'        : "${project.group}:${base.archivesName}:${project.version}",
+                'Specification-Title'   : project.name,
+                'Specification-Vendor'  : 'Forge Development LLC',
+                'Specification-Version' : "1", // We are version 1 of ourselves
+                'Implementation-Title'  : project.name,
+                'Implementation-Version': project.version,
+                'Implementation-Vendor' : 'Forge Development LLC',
+                'Automatic-Module-Name' : project.name,
             ])
         }
     }
 
-    license {
-        header = file('../header.txt')
+    ((LicenseExtension) license).tap {
+        header = rootProject.file('LICENSE-header.txt')
         newLine = false
         exclude '**/*.properties'
     }
 
-    publishing {
-        publications.register('mavenJava', MavenPublication) {
-            from components.java
-
-            pom {
-                name = project.name
-                description = 'Jar in Jar Utilities including the required NIO FileSystems. SubSystem: ' + project.name
-                url = 'https://github.com/MinecraftForge/JarJar'
-
-                PomUtils.setGitHubDetails(pom, 'JarJar')
-
-                license PomUtils.Licenses.LGPLv2_1
-            }
-        }
-
+    ((PublishingExtension) publishing).tap {
         repositories {
             maven gradleutils.publishingForgeMaven
         }
+
+        publications.register('mavenJava', MavenPublication) {
+            from components.java
+
+            gradleutils.promote(it)
+
+            pom {
+                name = project.name
+                description = project.description
+
+                gradleutils.pom.addRemoteDetails(pom)
+
+                licenses {
+                    license gradleutils.pom.licenses.LGPLv2_1
+                }
+            }
+        }
     }
 
-}
-
-changelog {
-    from '0.3'
 }

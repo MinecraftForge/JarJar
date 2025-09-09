@@ -21,9 +21,9 @@ public class ZipFsPathFsCompatTests {
     @Test
     public void relativizeDirectoryTest() throws URISyntaxException, IOException
     {
-        final Path windowsPath = Paths.get("src/binks/resources/dir1.zip");
+        final Path windowsPath = Paths.get("src/test/resources/dir1.zip");
         FileSystem jarFs = FileSystems.newFileSystem(URI.create("jar:" + windowsPath.toUri()), new HashMap<>());
-        FileSystem pathFs = FileSystems.newFileSystem(URI.create("path:///test"), createMap("packagePath", Paths.get("src/binks/resources/dir1.zip")));
+        FileSystem pathFs = FileSystems.newFileSystem(URI.create("path:///test"), createMap("packagePath", Paths.get("src/test/resources/dir1.zip")));
 
         assertEquals(
                 jarFs.getPath("/abc/xyz").relativize(jarFs.getPath("/abc/def/ghi")).toString(),
@@ -37,9 +37,9 @@ public class ZipFsPathFsCompatTests {
     @Test
     public void nameCountTest() throws URISyntaxException, IOException
     {
-        final Path windowsPath = Paths.get("src/binks/resources/dir1.zip");
+        final Path windowsPath = Paths.get("src/test/resources/dir1.zip");
         FileSystem jarFs = FileSystems.newFileSystem(URI.create("jar:" + windowsPath.toUri()), new HashMap<>());
-        FileSystem pathFs = FileSystems.newFileSystem(URI.create("path:///test"), createMap("packagePath", Paths.get("src/binks/resources/dir1.zip")));
+        FileSystem pathFs = FileSystems.newFileSystem(URI.create("path:///test"), createMap("packagePath", Paths.get("src/test/resources/dir1.zip")));
 
         assertEquals(
                 jarFs.getPath("/abc/xyz").getNameCount(),
@@ -53,9 +53,9 @@ public class ZipFsPathFsCompatTests {
     @Test
     public void rootsOfNormalZipFSIsDifferentDueToFML() throws URISyntaxException, IOException
     {
-        final Path windowsPath = Paths.get("src/binks/resources/dir1.zip");
+        final Path windowsPath = Paths.get("src/test/resources/dir1.zip");
         FileSystem jarFs = FileSystems.newFileSystem(URI.create("jar:" + windowsPath.toUri()), new HashMap<>());
-        FileSystem pathFs = FileSystems.newFileSystem(URI.create("path:///test"), createMap("packagePath", Paths.get("src/binks/resources/dir1.zip")));
+        FileSystem pathFs = FileSystems.newFileSystem(URI.create("path:///test"), createMap("packagePath", Paths.get("src/test/resources/dir1.zip")));
 
         //NOTE: This should normally be equals but in this particular case we do not want the FS spec for the ZIP since it
         // fails in the case of the root for the use of PathFS in FML when it detects filenames.
@@ -71,7 +71,7 @@ public class ZipFsPathFsCompatTests {
     @Test
     public void parentTest() throws URISyntaxException, IOException
     {
-        final Path windowsPath = Paths.get("src/binks/resources/dir1.zip");
+        final Path windowsPath = Paths.get("src/test/resources/dir1.zip");
         FileSystem jarFs = FileSystems.newFileSystem(URI.create("jar:" + windowsPath.toUri()), new HashMap<>());
         FileSystem pathFs = FileSystems.newFileSystem(URI.create("path:///test"), createMap("packagePath", windowsPath));
 
@@ -87,7 +87,7 @@ public class ZipFsPathFsCompatTests {
     @Test
     public void existsTest() throws URISyntaxException, IOException
     {
-        final Path windowsPath = Paths.get("src/binks/resources/dir1.zip");
+        final Path windowsPath = Paths.get("src/test/resources/dir1.zip");
         FileSystem jarFs = FileSystems.newFileSystem(URI.create("jar:" + windowsPath.toUri()), new HashMap<>());
         FileSystem pathFs = FileSystems.newFileSystem(URI.create("path:///test"), createMap("packagePath", windowsPath));
 

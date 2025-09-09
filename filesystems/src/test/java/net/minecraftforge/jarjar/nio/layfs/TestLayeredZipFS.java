@@ -25,7 +25,7 @@ public class TestLayeredZipFS
     {
 
         final URI filePathUri = new URI(
-          "jij:src/binks/resources/dir_in_dir_in_dir.zip~/dir_in_dir.zip~/dir1.zip/"
+          "jij:src/test/resources/dir_in_dir_in_dir.zip~/dir_in_dir.zip~/dir1.zip/"
         );
         final FileSystem zipFS = FileSystems.newFileSystem(filePathUri, new HashMap<>());
 
@@ -40,7 +40,7 @@ public class TestLayeredZipFS
     public void testUriConversion() throws URISyntaxException, IOException {
         final URI filePathUri = new URI(
           "jij:" +
-            (Paths.get("src/binks/resources/dir_in_dir_in_dir.zip").toAbsolutePath()
+            (Paths.get("src/test/resources/dir_in_dir_in_dir.zip").toAbsolutePath()
                .toUri().getRawSchemeSpecificPart())
             + "~/dir_in_dir.zip~/dir1.zip~/"
         ).normalize();
@@ -56,7 +56,7 @@ public class TestLayeredZipFS
     @Test
     public void testRelativeUriConversion() throws URISyntaxException, IOException {
         final URI filePathUri = new URI(
-          "jij:src/binks/resources/dir_in_dir_in_dir.zip~/dir_in_dir.zip~/dir1.zip~/"
+          "jij:src/test/resources/dir_in_dir_in_dir.zip~/dir_in_dir.zip~/dir1.zip~/"
         ).normalize();
         final FileSystem zipFS = FileSystems.newFileSystem(filePathUri, new HashMap<>());
 
@@ -65,7 +65,7 @@ public class TestLayeredZipFS
 
         final URI expectedUri = new URI(
           "jij:" +
-            (Paths.get("src/binks/resources/dir_in_dir_in_dir.zip").toAbsolutePath()
+            (Paths.get("src/test/resources/dir_in_dir_in_dir.zip").toAbsolutePath()
               .toUri().getRawSchemeSpecificPart())
             + "~/dir_in_dir.zip~/dir1.zip~/some_directory/with_some_file.txt"
         ).normalize();
@@ -76,7 +76,7 @@ public class TestLayeredZipFS
     @Test
     public void testRelativeRootUriConversion() throws URISyntaxException, IOException {
         final URI filePathUri = new URI(
-                "jij:src/binks/resources/dir_in_dir_in_dir.zip~/dir_in_dir.zip~/dir1.zip~/"
+                "jij:src/test/resources/dir_in_dir_in_dir.zip~/dir_in_dir.zip~/dir1.zip~/"
         ).normalize();
         final FileSystem zipFS = FileSystems.newFileSystem(filePathUri, new HashMap<>());
 
@@ -85,7 +85,7 @@ public class TestLayeredZipFS
 
         final URI expectedUri = new URI(
                 "jij:" +
-                (Paths.get("src/binks/resources/dir_in_dir_in_dir.zip").toAbsolutePath()
+                (Paths.get("src/test/resources/dir_in_dir_in_dir.zip").toAbsolutePath()
                       .toUri().getRawSchemeSpecificPart())
                 + "~/dir_in_dir.zip~/dir1.zip~/"
         ).normalize();
@@ -97,7 +97,7 @@ public class TestLayeredZipFS
     @Test
     public void testSplitResolving() throws URISyntaxException, IOException {
         final URI filePathUri = new URI(
-          "jij:src/binks/resources/dir_in_dir_in_dir.zip"
+          "jij:src/test/resources/dir_in_dir_in_dir.zip"
         ).normalize();
         final FileSystem zipFS = FileSystems.newFileSystem(filePathUri, new HashMap<>());
 
@@ -112,7 +112,7 @@ public class TestLayeredZipFS
     @Test
     public void testChainedSplitResolving() throws URISyntaxException, IOException {
         final URI filePathUri = new URI(
-          "jij:src/binks/resources/dir_in_dir_in_dir.zip"
+          "jij:src/test/resources/dir_in_dir_in_dir.zip"
         ).normalize();
         final FileSystem zipFS = FileSystems.newFileSystem(filePathUri, new HashMap<>());
 
@@ -126,7 +126,7 @@ public class TestLayeredZipFS
     @Test
     public void testPathSplitResolving() throws URISyntaxException, IOException {
         final URI filePathUri = new URI(
-          "jij:src/binks/resources/dir_in_dir_in_dir.zip"
+          "jij:src/test/resources/dir_in_dir_in_dir.zip"
         ).normalize();
         final FileSystem zipFS = FileSystems.newFileSystem(filePathUri, new HashMap<>());
 
@@ -141,7 +141,7 @@ public class TestLayeredZipFS
     @Test
     public void testChainedPathSplitResolving() throws URISyntaxException, IOException {
         final URI filePathUri = new URI(
-          "jij:src/binks/resources/dir_in_dir_in_dir.zip"
+          "jij:src/test/resources/dir_in_dir_in_dir.zip"
         ).normalize();
         final FileSystem zipFS = FileSystems.newFileSystem(filePathUri, new HashMap<>());
 
