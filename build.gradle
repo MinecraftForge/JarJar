@@ -4,10 +4,10 @@ import org.gradle.api.plugins.jvm.JvmTestSuite
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 
 plugins {
-    id 'io.freefair.javadoc-links' version '8.14' apply false
-    id 'net.minecraftforge.gradleutils' version '3.3.0' apply false
-    id 'net.minecraftforge.changelog' version '3.1.1'
-    id 'net.minecraftforge.licenser' version '1.2.0' apply false
+    alias libs.plugins.javadoc.links apply false
+    alias libs.plugins.gradleutils apply false
+    alias libs.plugins.changelog
+    alias libs.plugins.licenser apply false
 }
 
 group = 'net.minecraftforge'
@@ -25,17 +25,17 @@ subprojects {
         plugin 'jvm-test-suite'
         plugin 'idea'
         plugin 'maven-publish'
-        plugin 'io.freefair.javadoc-links'
-        plugin 'net.minecraftforge.gradleutils'
-        plugin 'net.minecraftforge.changelog'
-        plugin 'net.minecraftforge.licenser'
+        plugin libs.plugins.javadoc.links.get().pluginId
+        plugin libs.plugins.gradleutils.get().pluginId
+        plugin libs.plugins.changelog.get().pluginId
+        plugin libs.plugins.licenser.get().pluginId
     }
 
     //noinspection GroovyAccessibility -- IntelliJ is stupid
     final gradleutils = (GradleUtilsExtensionForProject) gradleutils
 
-    description = 'Jar in Jar Utilities including the required NIO FileSystems. SubSystem: ' + project.name
-    group = 'net.minecraftforge'
+    description = "Jar-in-Jar Utilities including the required NIO FileSystems. SubSystem: ${project.name}"
+    group = rootProject.group
     //version set by git version in settings.gradle
 
     ((JavaPluginExtension) java).tap {
@@ -64,10 +64,10 @@ subprojects {
     tasks.named('jar', Jar) {
         manifest {
             attributes([
-                'Maven-Artifact'        : "${project.group}:${base.archivesName}:${project.version}",
+                'Maven-Artifact'        : "${project.group}:${base.archivesName.get()}:${project.version}",
                 'Specification-Title'   : project.name,
                 'Specification-Vendor'  : 'Forge Development LLC',
-                'Specification-Version' : "1", // We are version 1 of ourselves
+                'Specification-Version' : '1',
                 'Implementation-Title'  : project.name,
                 'Implementation-Version': project.version,
                 'Implementation-Vendor' : 'Forge Development LLC',
