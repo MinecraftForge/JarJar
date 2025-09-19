@@ -9,7 +9,11 @@ import net.minecraftforge.jarjar.nio.AbstractPath;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.file.*;
+import java.nio.file.LinkOption;
+import java.nio.file.Path;
+import java.nio.file.WatchEvent;
+import java.nio.file.WatchKey;
+import java.nio.file.WatchService;
 import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.Deque;
@@ -20,7 +24,7 @@ import java.util.stream.IntStream;
 
 public class PathPath extends AbstractPath implements Path {
     private final PathFileSystem fileSystem;
-    private final String[]       pathParts;
+    private final String[] pathParts;
     public static final String ROOT = "/";
 
     PathPath(final PathFileSystem fileSystem, boolean knownCorrectSplit, final String... pathParts) {
@@ -75,13 +79,13 @@ public class PathPath extends AbstractPath implements Path {
             return this.fileSystem.getTarget().getFileName();
         }
 
-        return this.pathParts.length > 0 ? new PathPath(this.getFileSystem(), true, this.pathParts[this.pathParts.length-1]) : new PathPath(this.fileSystem, true, "");
+        return this.pathParts.length > 0 ? new PathPath(this.getFileSystem(), true, this.pathParts[this.pathParts.length - 1]) : new PathPath(this.fileSystem, true, "");
     }
 
     @Override
     public Path getParent() {
         if (this.pathParts.length > 0 && !(pathParts.length == 1 && pathParts[0].isEmpty()))
-            return new PathPath(this.fileSystem, true, Arrays.copyOf(this.pathParts,this.pathParts.length - 1));
+            return new PathPath(this.fileSystem, true, Arrays.copyOf(this.pathParts, this.pathParts.length - 1));
         return null;
     }
 
@@ -175,7 +179,7 @@ public class PathPath extends AbstractPath implements Path {
 
     @Override
     public Path relativize(final Path other) {
-        if (other.getFileSystem()!=this.getFileSystem()) throw new IllegalArgumentException("Wrong filesystem");
+        if (other.getFileSystem() != this.getFileSystem()) throw new IllegalArgumentException("Wrong filesystem");
         if (this.equals(getRoot()) && other.equals(other.getRoot())) {
             return this;
         }

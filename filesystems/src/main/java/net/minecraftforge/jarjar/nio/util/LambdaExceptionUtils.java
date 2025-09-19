@@ -10,7 +10,8 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
- * From stackoverflow: https://stackoverflow.com/a/27644392
+ * @see <a href="https://stackoverflow.com/a/27644392">How can I throw checked exceptions from inside Java 8
+ * lambdas/streams?</a>
  */
 public class LambdaExceptionUtils {
 

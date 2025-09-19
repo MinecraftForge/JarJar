@@ -58,8 +58,7 @@ public class LayeredZipFileSystemProvider extends PathFileSystemProvider {
     }
 
     private String handleAbsolutePrefixOnWindows(final FileSystem workingSystem, String section) {
-        if (workingSystem.getClass().getName().toLowerCase(Locale.ROOT).contains("windows"))
-        {
+        if (workingSystem.getClass().getName().toLowerCase(Locale.ROOT).contains("windows")) {
             //This special casing is needed, since else the rooted paths crash on Windows system because:
             // /D:/something is not a valid path on Windows.
             //However, the JDK does not expose the Windows FS types and there are no marker classes, so we use the
@@ -88,17 +87,14 @@ public class LayeredZipFileSystemProvider extends PathFileSystemProvider {
     }
 
     @Override
-    public Path getPath(final URI uri)
-    {
+    public Path getPath(final URI uri) {
         final String[] sections = uri.getRawSchemeSpecificPart().split("~");
         if (sections.length == 1)
             return super.getPath(uri);
 
         FileSystem workingSystem = FileSystems.getDefault(); //Grab the normal disk FS.
-        if (sections.length > 1)
-        {
-            for (int i = 0; i < sections.length - 1; i++)
-            {
+        if (sections.length > 1) {
+            for (int i = 0; i < sections.length - 1; i++) {
                 final String section = sections[i];
                 final Path path = workingSystem.getPath(section);
                 workingSystem = getOrCreateNewSystem(path);
@@ -110,19 +106,15 @@ public class LayeredZipFileSystemProvider extends PathFileSystemProvider {
     }
 
     @Override
-    public FileSystem getFileSystem(final URI uri)
-    {
+    public FileSystem getFileSystem(final URI uri) {
         final String[] sections = uri.getRawSchemeSpecificPart().split("~");
-        if (sections.length == 1)
-        {
+        if (sections.length == 1) {
             return super.getFileSystem(uri);
         }
 
         FileSystem workingSystem = FileSystems.getDefault(); //Grab the normal disk FS.
-        if (sections.length > 1)
-        {
-            for (int i = 0; i < sections.length - 1; i++)
-            {
+        if (sections.length > 1) {
+            for (int i = 0; i < sections.length - 1; i++) {
                 final String section = sections[i];
                 final Path path = workingSystem.getPath(section);
                 workingSystem = getOrCreateNewSystem(path);
@@ -135,8 +127,7 @@ public class LayeredZipFileSystemProvider extends PathFileSystemProvider {
     }
 
     @Override
-    protected URI buildUriFor(final PathPath path) throws URISyntaxException, IllegalArgumentException
-    {
+    protected URI buildUriFor(final PathPath path) throws URISyntaxException, IllegalArgumentException {
         String prefix = "";
 
         prefix = buildPrefixFor(path.getFileSystem().getTarget());
@@ -155,8 +146,7 @@ public class LayeredZipFileSystemProvider extends PathFileSystemProvider {
 
     @SuppressWarnings("resource")
     @Override
-    public Path adaptResolvedPath(final PathPath path)
-    {
+    public Path adaptResolvedPath(final PathPath path) {
         if (!path.toString().contains(PATH_SEPERATOR))
             return path;
 
@@ -164,21 +154,18 @@ public class LayeredZipFileSystemProvider extends PathFileSystemProvider {
                                      .getPath(path.toString()
                                                   .substring(0, path.toString().lastIndexOf(PATH_SEPERATOR)) + PATH_SEPERATOR);
         final FileSystem workingSystem;
-        try
-        {
+        try {
             workingSystem = FileSystems.newFileSystem(workingPath.toUri(), new HashMap<>());
             return workingSystem.getPath(path.endsWith(PATH_SEPERATOR) ? "/" : path.toString()
                                                                                    .substring(path.toString()
                                                                                                   .lastIndexOf(PATH_SEPERATOR) + 2));
-        } catch (IOException e)
-        {
+        } catch (IOException e) {
             throw new IllegalArgumentException("Failed to get sub file system for path!", e);
         }
     }
 
     @Override
-    public String[] adaptPathParts(final String longstring, final String[] pathParts)
-    {
+    public String[] adaptPathParts(final String longstring, final String[] pathParts) {
         if (!longstring.endsWith(PATH_SEPERATOR))
             return pathParts;
 
@@ -203,8 +190,7 @@ public class LayeredZipFileSystemProvider extends PathFileSystemProvider {
             workingSystem = rootKnownCandidateSystem.get();
             keyPrefix += sections[0].replace("\\", "/") + PATH_SEPERATOR;
 
-            for (int i = 1; i < sections.length - 2; i++)
-            {
+            for (int i = 1; i < sections.length - 2; i++) {
                 String section = sections[i];
                 if (section.startsWith("/"))
                     section = section.substring(1);
@@ -218,8 +204,7 @@ public class LayeredZipFileSystemProvider extends PathFileSystemProvider {
         }
 
         //This is now a special case here, we might be in native land so we need to deal with it.
-        for (int i = 0; i < sections.length - 1; i++)
-        {
+        for (int i = 0; i < sections.length - 1; i++) {
             String section = sections[i];
             if (section.startsWith("//"))
                 section = section.substring(2);

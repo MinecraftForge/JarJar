@@ -4,16 +4,20 @@
  */
 package net.minecraftforge.jarjar.metadata.json;
 
-import com.google.gson.*;
+import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonDeserializer;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
 import net.minecraftforge.jarjar.metadata.ContainedJarIdentifier;
 
 import java.lang.reflect.Type;
 
-public class ContainedJarIdentifierSerializer implements JsonSerializer<ContainedJarIdentifier>, JsonDeserializer<ContainedJarIdentifier>
-{
+public class ContainedJarIdentifierSerializer implements JsonSerializer<ContainedJarIdentifier>, JsonDeserializer<ContainedJarIdentifier> {
     @Override
-    public ContainedJarIdentifier deserialize(final JsonElement json, final Type typeOfT, final JsonDeserializationContext context) throws JsonParseException
-    {
+    public ContainedJarIdentifier deserialize(final JsonElement json, final Type typeOfT, final JsonDeserializationContext context) throws JsonParseException {
         if (!json.isJsonObject())
             throw new JsonParseException("Expected object");
 
@@ -24,8 +28,7 @@ public class ContainedJarIdentifierSerializer implements JsonSerializer<Containe
     }
 
     @Override
-    public JsonElement serialize(final ContainedJarIdentifier src, final Type typeOfSrc, final JsonSerializationContext context)
-    {
+    public JsonElement serialize(final ContainedJarIdentifier src, final Type typeOfSrc, final JsonSerializationContext context) {
         final JsonObject jsonObject = new JsonObject();
         jsonObject.addProperty("group", src.group());
         jsonObject.addProperty("artifact", src.artifact());

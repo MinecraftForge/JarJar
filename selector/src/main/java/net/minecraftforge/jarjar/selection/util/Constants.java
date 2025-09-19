@@ -4,13 +4,11 @@
  */
 package net.minecraftforge.jarjar.selection.util;
 
-public class Constants
-{
+import net.minecraftforge.jarjar.selection.JarSelector;
 
-    private Constants()
-    {
-        throw new IllegalStateException("Can not instantiate an instance of: Constants. This is a utility class");
-    }
+@Deprecated
+public class Constants {
+    private Constants() { }
 
-    public static final String CONTAINED_JARS_METADATA_PATH = "META-INF/jarjar/metadata.json";
+    public static final String CONTAINED_JARS_METADATA_PATH = JarSelector.CONTAINED_JARS_METADATA_PATH;
 }

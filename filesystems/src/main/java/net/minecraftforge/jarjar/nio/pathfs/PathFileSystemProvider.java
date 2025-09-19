@@ -9,7 +9,15 @@ import java.io.UncheckedIOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.channels.SeekableByteChannel;
-import java.nio.file.*;
+import java.nio.file.AccessMode;
+import java.nio.file.CopyOption;
+import java.nio.file.DirectoryStream;
+import java.nio.file.FileStore;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystemNotFoundException;
+import java.nio.file.LinkOption;
+import java.nio.file.OpenOption;
+import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileAttribute;
 import java.nio.file.attribute.FileAttributeView;
@@ -34,15 +42,13 @@ public class PathFileSystemProvider extends FileSystemProvider {
 
     /**
      * Invoked by FileSystems.newFileSystem, Only returns a value if env contains an entry with the name of
-     *          "packagePath" and Path targeting the file in question.
-     * If not specified, throws IllegalArgumentException
-     * If uri.getScheme() is not "path" throws IllegalArgumentException
-     * If you wish to create a PathFileSystem explicitly, invoke newFileSystem(Path)
+     * "packagePath" and Path targeting the file in question. If not specified, throws IllegalArgumentException If
+     * uri.getScheme() is not "path" throws IllegalArgumentException If you wish to create a PathFileSystem explicitly,
+     * invoke newFileSystem(Path)
      */
     @Override
     public FileSystem newFileSystem(final URI uri, final Map<String, ?> env) throws IOException {
-        @SuppressWarnings("unchecked")
-        final Path packagePath = ((Map<String, Path>)env).getOrDefault("packagePath", null);
+        @SuppressWarnings("unchecked") final Path packagePath = ((Map<String, Path>) env).getOrDefault("packagePath", null);
 
         if (packagePath == null)
             throw new UnsupportedOperationException("Missing packagePath");
@@ -61,14 +67,12 @@ public class PathFileSystemProvider extends FileSystemProvider {
 
     /**
      * Invoked by FileSystems.newFileSystem, Only returns a value if env contains an entry with the name of
-     *          "packagePath" and Path targeting the file in question.
-     * If none specified, throws UnsupportedOperationException instead of IllegalArgumentException
-     *   so that FileSystems.newFileSystem will search for the next provider.
+     * "packagePath" and Path targeting the file in question. If none specified, throws UnsupportedOperationException
+     * instead of IllegalArgumentException so that FileSystems.newFileSystem will search for the next provider.
      */
     @Override
     public FileSystem newFileSystem(final Path path, final Map<String, ?> env) throws IOException {
-        @SuppressWarnings("unchecked")
-        final Path packagePath = ((Map<String, Path>)env).getOrDefault("packagePath", null);
+        @SuppressWarnings("unchecked") final Path packagePath = ((Map<String, Path>) env).getOrDefault("packagePath", null);
 
         if (packagePath == null)
             throw new UnsupportedOperationException("Missing packagePath");
@@ -138,7 +142,7 @@ public class PathFileSystemProvider extends FileSystemProvider {
         if (parts.path != null)
             return getFileSystem(uri).getPath(parts.path);
         else
-            return ((PathFileSystem)getFileSystem(uri)).getRoot();
+            return ((PathFileSystem) getFileSystem(uri)).getRoot();
     }
 
     @Override
@@ -247,6 +251,7 @@ public class PathFileSystemProvider extends FileSystemProvider {
         throw new UnsupportedOperationException();
     }
 
+    @SuppressWarnings("resource")
     void removeFileSystem(PathFileSystem fs) {
         synchronized (fileSystems) {
             fileSystems.remove(fs.getKey());

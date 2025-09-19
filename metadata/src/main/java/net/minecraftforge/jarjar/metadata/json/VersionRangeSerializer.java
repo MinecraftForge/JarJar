@@ -4,7 +4,13 @@
  */
 package net.minecraftforge.jarjar.metadata.json;
 
-import com.google.gson.*;
+import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonDeserializer;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParseException;
+import com.google.gson.JsonPrimitive;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
 import org.apache.maven.artifact.versioning.InvalidVersionSpecificationException;
 import org.apache.maven.artifact.versioning.Restriction;
 import org.apache.maven.artifact.versioning.VersionRange;
@@ -12,18 +18,13 @@ import org.apache.maven.artifact.versioning.VersionRange;
 import java.lang.reflect.Type;
 import java.util.Iterator;
 
-public class VersionRangeSerializer implements JsonSerializer<VersionRange>, JsonDeserializer<VersionRange>
-{
+public class VersionRangeSerializer implements JsonSerializer<VersionRange>, JsonDeserializer<VersionRange> {
     @Override
-    public VersionRange deserialize(final JsonElement json, final Type typeOfT, final JsonDeserializationContext context) throws JsonParseException
-    {
+    public VersionRange deserialize(final JsonElement json, final Type typeOfT, final JsonDeserializationContext context) throws JsonParseException {
         if (json.isJsonPrimitive()) {
-            try
-            {
+            try {
                 return VersionRange.createFromVersionSpec(json.getAsString());
-            }
-            catch (InvalidVersionSpecificationException e)
-            {
+            } catch (InvalidVersionSpecificationException e) {
                 throw new JsonParseException("Failed to parse version spec from: " + json.getAsString(), e);
             }
         }
@@ -32,55 +33,46 @@ public class VersionRangeSerializer implements JsonSerializer<VersionRange>, Jso
     }
 
     @Override
-    public JsonElement serialize(final VersionRange src, final Type typeOfSrc, final JsonSerializationContext context)
-    {
+    public JsonElement serialize(final VersionRange src, final Type typeOfSrc, final JsonSerializationContext context) {
         return new JsonPrimitive(serializeRange(src));
     }
 
-    private String serializeRange(final VersionRange src)
-    {
-        if ( src.getRecommendedVersion() != null )
-        {
+    private String serializeRange(final VersionRange src) {
+        if (src.getRecommendedVersion() != null) {
             return src.getRecommendedVersion().toString();
-        }
-        else
-        {
+        } else {
             StringBuilder buf = new StringBuilder();
-            for (Iterator<Restriction> i = src.getRestrictions().iterator(); i.hasNext(); )
-            {
+            for (Iterator<Restriction> i = src.getRestrictions().iterator(); i.hasNext(); ) {
                 Restriction r = i.next();
 
-                buf.append( serializeRestriction(r) );
+                buf.append(serializeRestriction(r));
 
-                if ( i.hasNext() )
-                {
-                    buf.append( ',' );
+                if (i.hasNext()) {
+                    buf.append(',');
                 }
             }
             return buf.toString();
         }
     }
 
-    private String serializeRestriction(final Restriction src)
-    {
+    /** @see Restriction#toString() */
+    private String serializeRestriction(final Restriction src) {
         StringBuilder buf = new StringBuilder();
 
-        buf.append( src.isLowerBoundInclusive() ? '[' : '(' );
+        buf.append(src.isLowerBoundInclusive() ? '[' : '(');
         if (src.getLowerBound().equals(src.getUpperBound())) {
             buf.append(src.getLowerBound().toString());
         } else {
-            if ( src.getLowerBound() != null )
-            {
-                buf.append( src.getLowerBound().toString() );
+            if (src.getLowerBound() != null) {
+                buf.append(src.getLowerBound().toString());
             }
-            buf.append( ',' );
-            if ( src.getUpperBound() != null )
-            {
-                buf.append( src.getUpperBound().toString() );
+            buf.append(',');
+            if (src.getUpperBound() != null) {
+                buf.append(src.getUpperBound().toString());
             }
         }
 
-        buf.append( src.isUpperBoundInclusive() ? ']' : ')' );
+        buf.append(src.isUpperBoundInclusive() ? ']' : ')');
 
         return buf.toString();
     }

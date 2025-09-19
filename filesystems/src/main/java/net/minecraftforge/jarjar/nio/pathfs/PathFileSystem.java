@@ -10,7 +10,17 @@ import net.minecraftforge.jarjar.nio.util.Lazy;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.channels.SeekableByteChannel;
-import java.nio.file.*;
+import java.nio.file.AccessMode;
+import java.nio.file.DirectoryStream;
+import java.nio.file.FileStore;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.LinkOption;
+import java.nio.file.OpenOption;
+import java.nio.file.Path;
+import java.nio.file.PathMatcher;
+import java.nio.file.WatchService;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileAttribute;
 import java.nio.file.attribute.UserPrincipalLookupService;
@@ -20,12 +30,12 @@ import java.util.List;
 import java.util.Set;
 
 public class PathFileSystem extends FileSystem {
-    private final Path                   root = new PathPath(this, false, PathPath.ROOT).toAbsolutePath();
+    private final Path root = new PathPath(this, false, PathPath.ROOT).toAbsolutePath();
     private final PathFileSystemProvider provider;
-    private final String                 key;
-    private final Path                   target;
+    private final String key;
+    private final Path target;
     private final Lazy<FileSystem> innerSystem;
-    private final Lazy<Path>       innerFSTarget;
+    private final Lazy<Path> innerFSTarget;
 
     PathFileSystem(PathFileSystemProvider provider, String key, Path target) {
         this.provider = provider;
@@ -174,8 +184,8 @@ public class PathFileSystem extends FileSystem {
 
         try {
             return PathFSUtils.adapt(
-              this.innerSystem.get().provider().newDirectoryStream(getOuterTarget(dir), filter),
-              path -> new PathPath(this, target.relativize(path))
+                this.innerSystem.get().provider().newDirectoryStream(getOuterTarget(dir), filter),
+                path -> new PathPath(this, target.relativize(path))
             );
         } catch (IOException e) {
             return PathFSUtils.NULL_STREAM;
@@ -192,6 +202,6 @@ public class PathFileSystem extends FileSystem {
 
     @SuppressWarnings("unchecked")
     private static <E extends Throwable, R> R sneak(Exception exception) throws E {
-        throw (E)exception;
+        throw (E) exception;
     }
 }

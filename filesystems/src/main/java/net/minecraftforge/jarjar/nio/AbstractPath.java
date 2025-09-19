@@ -13,8 +13,7 @@ import java.nio.file.WatchService;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
-public abstract class AbstractPath implements Path
-{
+public abstract class AbstractPath implements Path {
     protected AbstractPath() { }
 
     @Override
@@ -49,10 +48,12 @@ public abstract class AbstractPath implements Path
     public final Iterator<Path> iterator() {
         return new Iterator<Path>() {
             private int i = 0;
+
             @Override
             public boolean hasNext() {
                 return (i < getNameCount());
             }
+
             @Override
             public Path next() {
                 if (i < getNameCount()) {
@@ -63,6 +64,7 @@ public abstract class AbstractPath implements Path
                     throw new NoSuchElementException();
                 }
             }
+
             @Override
             public void remove() {
                 throw new UnsupportedOperationException();
@@ -76,11 +78,7 @@ public abstract class AbstractPath implements Path
     }
 
     @Override
-    public final WatchKey register(
-      WatchService watcher,
-      WatchEvent.Kind<?>... events)
-      throws IOException
-    {
+    public final WatchKey register(WatchService watcher, WatchEvent.Kind<?>... events) throws IOException {
         return register(watcher, events, new WatchEvent.Modifier[0]);
     }
 }

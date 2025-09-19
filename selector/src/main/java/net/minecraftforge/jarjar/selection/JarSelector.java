@@ -21,11 +21,11 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public final class JarSelector {
+    private JarSelector() { }
+
     private static final Logger LOGGER = LoggerFactory.getLogger(JarSelector.class);
 
-    private JarSelector() {
-        throw new IllegalStateException("Can not instantiate an instance of: JarSelector. This is a utility class");
-    }
+    public static final String CONTAINED_JARS_METADATA_PATH = "META-INF/jarjar/metadata.json";
 
     public static <T, E extends Throwable> List<T> detectAndSelect(
             final List<T> source,
@@ -103,7 +103,7 @@ public final class JarSelector {
             final BiFunction<T, Path, Optional<InputStream>> resourceReader,
             final BiFunction<T, Path, Optional<T>> sourceProducer,
             final Function<T, String> identificationProducer) {
-        final Path metadataPath = Paths.get(Constants.CONTAINED_JARS_METADATA_PATH);
+        final Path metadataPath = Paths.get(CONTAINED_JARS_METADATA_PATH);
         final Map<T, Optional<InputStream>> metadataInputStreamsBySource = source.stream().collect(
                 Collectors.toMap(
                         Function.identity(),
@@ -158,7 +158,7 @@ public final class JarSelector {
         while (!sourcesToProcess.isEmpty()) {
             final T source = sourcesToProcess.remove();
             final T rootSource = rootSourcesBySource.get(source);
-            final Optional<InputStream> metadataInputStream = resourceReader.apply(source, Paths.get(Constants.CONTAINED_JARS_METADATA_PATH));
+            final Optional<InputStream> metadataInputStream = resourceReader.apply(source, Paths.get(CONTAINED_JARS_METADATA_PATH));
             if (metadataInputStream.isPresent()) {
                 final Optional<Metadata> metadata = MetadataIOHandler.fromStream(metadataInputStream.get());
                 if (metadata.isPresent()) {

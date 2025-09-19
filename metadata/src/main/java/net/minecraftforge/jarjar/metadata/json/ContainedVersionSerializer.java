@@ -4,18 +4,22 @@
  */
 package net.minecraftforge.jarjar.metadata.json;
 
-import com.google.gson.*;
+import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonDeserializer;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
 import net.minecraftforge.jarjar.metadata.ContainedVersion;
 import org.apache.maven.artifact.versioning.ArtifactVersion;
 import org.apache.maven.artifact.versioning.VersionRange;
 
 import java.lang.reflect.Type;
 
-public class ContainedVersionSerializer implements JsonSerializer<ContainedVersion>, JsonDeserializer<ContainedVersion>
-{
+public class ContainedVersionSerializer implements JsonSerializer<ContainedVersion>, JsonDeserializer<ContainedVersion> {
     @Override
-    public ContainedVersion deserialize(final JsonElement json, final Type typeOfT, final JsonDeserializationContext context) throws JsonParseException
-    {
+    public ContainedVersion deserialize(final JsonElement json, final Type typeOfT, final JsonDeserializationContext context) throws JsonParseException {
         if (!json.isJsonObject())
             throw new JsonParseException("Expected object");
 
@@ -26,8 +30,7 @@ public class ContainedVersionSerializer implements JsonSerializer<ContainedVersi
     }
 
     @Override
-    public JsonElement serialize(final ContainedVersion src, final Type typeOfSrc, final JsonSerializationContext context)
-    {
+    public JsonElement serialize(final ContainedVersion src, final Type typeOfSrc, final JsonSerializationContext context) {
         final JsonObject jsonObject = new JsonObject();
         jsonObject.add("range", context.serialize(src.range()));
         jsonObject.add("artifactVersion", context.serialize(src.artifactVersion()));

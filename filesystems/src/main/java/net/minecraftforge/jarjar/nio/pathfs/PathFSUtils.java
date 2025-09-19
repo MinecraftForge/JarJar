@@ -11,9 +11,7 @@ import java.util.Iterator;
 import java.util.function.Function;
 
 class PathFSUtils {
-    private PathFSUtils() {
-        throw new IllegalStateException("Can not instantiate an instance of: PathFSUtils. This is a utility class");
-    }
+    private PathFSUtils() { }
 
     public static final DirectoryStream<Path> NULL_STREAM = new DirectoryStream<Path>() {
         @Override
@@ -32,8 +30,7 @@ class PathFSUtils {
         }
 
         @Override
-        public void close() throws IOException {
-        }
+        public void close() throws IOException { }
     };
 
     public static DirectoryStream<Path> adapt(final DirectoryStream<Path> inner, final Function<Path, Path> adapter) {
