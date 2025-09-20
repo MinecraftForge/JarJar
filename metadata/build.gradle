@@ -1,3 +1,9 @@
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+
+plugins {
+    alias libs.plugins.shadow
+}
+
 dependencies {
     api libs.maven.artifact
     api libs.gson
@@ -6,4 +12,16 @@ dependencies {
     api libs.noexception
     api libs.slf4j.api
     runtimeOnly libs.slf4j.simple
+}
+
+// NOTE: This shadow jar cannot have relocation as consuming projects would be unaware of the package changes of API dependencies.
+//       You should not use this. This is for the Gradle plugin, which uses it in an classloader-isolated task action.
+tasks.named('shadowJar', ShadowJar) {
+    archiveClassifier = 'fatjar'
+}
+
+// TODO [JarJarMetadata] Delete once the following PR is merged and included in a release
+//      https://github.com/GradleUp/shadow/pull/1766
+tasks.named({'assemble'.equals(it)} as Spec<String>).configureEach {
+    it.dependsOn(tasks.named('shadowJar', ShadowJar))
 }
