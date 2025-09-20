@@ -15,9 +15,6 @@ import java.util.function.Supplier;
  */
 public class LambdaExceptionUtils {
 
-    /**
-     * .forEach(rethrowConsumer(name -> System.out.println(Class.forName(name)))); or .forEach(rethrowConsumer(ClassNameUtil::println));
-     */
     public static <T, E extends Exception> Consumer<T> rethrowConsumer(Consumer_WithExceptions<T, E> consumer) {
         return t -> {
             try {
@@ -38,9 +35,6 @@ public class LambdaExceptionUtils {
         };
     }
 
-    /**
-     * .map(rethrowFunction(name -> Class.forName(name))) or .map(rethrowFunction(Class::forName))
-     */
     public static <T, R, E extends Exception> Function<T, R> rethrowFunction(Function_WithExceptions<T, R, E> function) {
         return t -> {
             try {
@@ -52,9 +46,6 @@ public class LambdaExceptionUtils {
         };
     }
 
-    /**
-     * rethrowSupplier(() -> new StringJoiner(new String(new byte[]{77, 97, 114, 107}, "UTF-8"))),
-     */
     public static <T, E extends Exception> Supplier<T> rethrowSupplier(Supplier_WithExceptions<T, E> function) {
         return () -> {
             try {
@@ -66,9 +57,6 @@ public class LambdaExceptionUtils {
         };
     }
 
-    /**
-     * uncheck(() -> Class.forName("xxx"));
-     */
     public static void uncheck(Runnable_WithExceptions t) {
         try {
             t.run();
@@ -77,9 +65,6 @@ public class LambdaExceptionUtils {
         }
     }
 
-    /**
-     * uncheck(() -> Class.forName("xxx"));
-     */
     public static <R, E extends Exception> R uncheck(Supplier_WithExceptions<R, E> supplier) {
         try {
             return supplier.get();
@@ -89,9 +74,6 @@ public class LambdaExceptionUtils {
         }
     }
 
-    /**
-     * uncheck(() -> Class.forName("xxx"));
-     */
     public static <R, E extends Exception> Supplier<R> uncheckSupply(Supplier_WithExceptions<R, E> supplier) {
         return () -> {
             try {
@@ -103,9 +85,6 @@ public class LambdaExceptionUtils {
         };
     }
 
-    /**
-     * uncheck((clz) -> clz.forName("xxx"));
-     */
     public static <R, E extends Exception> Consumer<R> uncheckConsume(Consumer_WithExceptions<R, E> consumer) {
         return (value) -> {
             try {
@@ -116,9 +95,6 @@ public class LambdaExceptionUtils {
         };
     }
 
-    /**
-     * uncheck(Class::forName, "xxx");
-     */
     public static <T, R, E extends Exception> R uncheck(Function_WithExceptions<T, R, E> function, T t) {
         try {
             return function.apply(t);
