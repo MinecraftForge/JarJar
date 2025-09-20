@@ -17,6 +17,7 @@ import org.apache.maven.artifact.versioning.VersionRange;
 
 import java.lang.reflect.Type;
 import java.util.Iterator;
+import java.util.stream.Collectors;
 
 public class VersionRangeSerializer implements JsonSerializer<VersionRange>, JsonDeserializer<VersionRange> {
     @Override
@@ -37,43 +38,19 @@ public class VersionRangeSerializer implements JsonSerializer<VersionRange>, Jso
         return new JsonPrimitive(serializeRange(src));
     }
 
-    private String serializeRange(final VersionRange src) {
-        if (src.getRecommendedVersion() != null) {
-            return src.getRecommendedVersion().toString();
-        } else {
-            StringBuilder buf = new StringBuilder();
-            for (Iterator<Restriction> i = src.getRestrictions().iterator(); i.hasNext(); ) {
-                Restriction r = i.next();
-
-                buf.append(serializeRestriction(r));
-
-                if (i.hasNext()) {
-                    buf.append(',');
-                }
-            }
-            return buf.toString();
-        }
+    private static String serializeRange(final VersionRange src) {
+        return src.getRecommendedVersion() != null
+            ? src.getRecommendedVersion().toString()
+            : src.getRestrictions()
+                 .stream()
+                 .map(VersionRangeSerializer::serializeRestriction)
+                 .collect(Collectors.joining(","));
     }
 
-    /** @see Restriction#toString() */
-    private String serializeRestriction(final Restriction src) {
-        StringBuilder buf = new StringBuilder();
-
-        buf.append(src.isLowerBoundInclusive() ? '[' : '(');
-        if (src.getLowerBound().equals(src.getUpperBound())) {
-            buf.append(src.getLowerBound().toString());
-        } else {
-            if (src.getLowerBound() != null) {
-                buf.append(src.getLowerBound().toString());
-            }
-            buf.append(',');
-            if (src.getUpperBound() != null) {
-                buf.append(src.getUpperBound().toString());
-            }
-        }
-
-        buf.append(src.isUpperBoundInclusive() ? ']' : ')');
-
-        return buf.toString();
+    // NOTE: Does nothing but condense the version if lower and upper bounds are the same.
+    private static String serializeRestriction(final Restriction src) {
+        return src.getLowerBound().equals(src.getUpperBound())
+            ? String.format("%s%s%s", src.isLowerBoundInclusive() ? '[' : '(', src.getLowerBound().toString(), src.isUpperBoundInclusive() ? ']' : ')')
+            : src.toString();
     }
 }
