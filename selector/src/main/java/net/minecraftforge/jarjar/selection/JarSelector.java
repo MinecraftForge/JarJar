@@ -65,18 +65,18 @@ public final class JarSelector {
             throw exception;
         }
 
-        final List<T> selectedJars = select.stream()
-                .map(SelectionResult::selected)
-                .filter(Optional::isPresent)
-                .map(Optional::get)
-                .filter(detectedJarsBySource::containsKey)
-                .map(selectedJarMetadata -> {
-                    final Collection<T> sourceOfJar = detectedJarsBySource.get(selectedJarMetadata);
-                    return sourceProducer.apply(sourceOfJar.iterator().next(), Paths.get(selectedJarMetadata.path()));
-                })
-                .filter(Optional::isPresent)
-                .map(Optional::get)
-                .collect(Collectors.toList());
+        final List<T> selectedJars = new ArrayList<>(select.size());
+        for (SelectionResult result : select) {
+            final Optional<ContainedJarMetadata> optional = result.selected();
+            if (!optional.isPresent()) continue;
+
+            final ContainedJarMetadata selectedJarMetadata = optional.get();
+            if (!detectedJarsBySource.containsKey(selectedJarMetadata)) continue;
+
+            final Collection<T> sourceOfJar = detectedJarsBySource.get(selectedJarMetadata);
+            final Optional<T> s = sourceProducer.apply(sourceOfJar.iterator().next(), Paths.get(selectedJarMetadata.path()));
+            s.ifPresent(selectedJars::add);
+        }
 
         final Map<String, T> selectedJarsByIdentification = selectedJars.stream()
                 .collect(Collectors.toMap(identificationProducer, Function.identity(), (t, t2) -> {
@@ -91,10 +91,15 @@ public final class JarSelector {
                 }));
 
         //Strip out jars which are already included by source. We can't do any resolution on this anyway so we force the use of those by not returning them.
-        final Set<String> operatingKeySet = new HashSet<>(selectedJarsByIdentification.keySet()); //PREVENT CME's.
-        operatingKeySet.stream().filter(sourceJarsByIdentification::containsKey)
-                .peek(identification -> LOGGER.warn("Attempted to select a dependency jar for JarJar which was passed in as source: {}. Using {}", identification, sourceJarsByIdentification.get(identification)))
-                .forEach(selectedJarsByIdentification::remove);
+        Iterator<String> itor = selectedJarsByIdentification.keySet().iterator();
+        while (itor.hasNext()) {
+            String identification = itor.next();
+            T sourceJar = sourceJarsByIdentification.get(identification);
+            if (sourceJar == null) continue;
+
+            LOGGER.warn("Attempted to select a dependency jar for JarJar which was passed in as source: {}. Using {}", identification, sourceJar);
+            itor.remove();
+        }
         return new ArrayList<>(selectedJarsByIdentification.values());
     }
 
