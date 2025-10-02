@@ -29,6 +29,10 @@ public interface JarJarContainerInternal extends JarJarContainer, Named, HasPubl
         return this.getConfigurationName() + "RuntimeElements";
     }
 
+    default String getConsumableDependenciesConfigurationName() {
+        return this.getConfigurationName() + "RuntimeDependencies";
+    }
+
     @Override
     default String getSoftwareComponentName() {
         return this.getName();

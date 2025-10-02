@@ -19,5 +19,5 @@ public interface JarJarContainer {
 
     String getSoftwareComponentName();
 
-    NamedDomainObjectProvider<AdhocComponentWithVariants> getSoftwareComponent();
+    AdhocComponentWithVariants getSoftwareComponent();
 }

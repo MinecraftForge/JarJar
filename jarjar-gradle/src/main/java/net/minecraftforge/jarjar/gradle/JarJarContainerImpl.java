@@ -17,6 +17,7 @@ import org.gradle.api.attributes.Usage;
 import org.gradle.api.attributes.java.TargetJvmVersion;
 import org.gradle.api.component.AdhocComponentWithVariants;
 import org.gradle.api.component.ConfigurationVariantDetails;
+import org.gradle.api.component.SoftwareComponentFactory;
 import org.gradle.api.model.ObjectFactory;
 import org.gradle.api.plugins.JavaPlugin;
 import org.gradle.api.plugins.JavaPluginExtension;
@@ -35,11 +36,12 @@ abstract class JarJarContainerImpl implements JarJarContainerInternal {
     private final TaskProvider<JarJar> task;
     private final NamedDomainObjectProvider<DependencyScopeConfiguration> configuration;
     private final NamedDomainObjectProvider<ResolvableConfiguration> resolvableConfiguration;
-    private final NamedDomainObjectProvider<AdhocComponentWithVariants> softwareComponent;
+    private final AdhocComponentWithVariants softwareComponent;
 
     private final JarJarProblems problems = this.getObjects().newInstance(JarJarProblems.class);
     protected abstract @Inject ObjectFactory getObjects();
     protected abstract @Inject ProviderFactory getProviders();
+    protected abstract @Inject SoftwareComponentFactory getSoftwareComponents();
 
     @Inject
     public JarJarContainerImpl(String name, Project project, TaskProvider<? extends Jar> jar, Action<? super JarJar> taskAction) {
@@ -63,7 +65,20 @@ abstract class JarJarContainerImpl implements JarJarContainerInternal {
 
         this.task = JarJar.register(this, taskAction);
 
+        this.softwareComponent = this.getSoftwareComponents().adhoc(this.getSoftwareComponentName());
+        project.getComponents().add(this.softwareComponent);
+
         var runtimeClasspath = configurations.named(JavaPlugin.RUNTIME_CLASSPATH_CONFIGURATION_NAME);
+        var jarJarRuntimeDependencies = configurations.dependencyScope(this.getConsumableDependenciesConfigurationName(), configuration -> {
+            configuration.withDependencies(dependencies -> {
+                var included = this.resolvableConfiguration.get().getAllDependencies();
+                for (var dependency : runtimeClasspath.get().getAllDependencies()) {
+                    if (!included.contains(dependency))
+                        dependencies.add(dependency);
+                }
+            });
+        });
+
         var jarJarRuntimeElements = configurations.consumable(this.getConsumableConfigurationName(), configuration -> {
             configuration.attributes(attributes -> {
                 attributes.attribute(Usage.USAGE_ATTRIBUTE, this.getObjects().named(Usage.class, Usage.JAVA_RUNTIME));
@@ -77,24 +92,16 @@ abstract class JarJarContainerImpl implements JarJarContainerInternal {
                     .orElse(this.getProviders().provider(() -> java.getTargetCompatibility().getMajorVersion()).map(JavaLanguageVersion::of).map(JavaLanguageVersion::asInt)));
             });
             configuration.outgoing(outgoing -> outgoing.artifact(task));
-            configuration.withDependencies(dependencies -> {
-                var included = this.resolvableConfiguration.get().getAllDependencies();
-                for (var dependency : runtimeClasspath.get().getAllDependencies()) {
-                    if (!included.contains(dependency))
-                        dependencies.add(dependency);
-                }
-            });
-        });
+            configuration.extendsFrom(jarJarRuntimeDependencies.get());
 
-        this.softwareComponent = project.getComponents().register(this.getSoftwareComponentName(), AdhocComponentWithVariants.class, component -> {
-            component.addVariantsFromConfiguration(jarJarRuntimeElements.get(), variant -> {
-                variant.getConfigurationVariant().getDescription().set("Dependencies shadowed using Forge Jar-in-Jar.");
+            project.getComponents().named("java", AdhocComponentWithVariants.class, component -> component.addVariantsFromConfiguration(configuration, variant -> {
+                variant.getConfigurationVariant().getDescription().set("Dependencies embedded using Forge Jar-in-Jar.");
+                variant.mapToMavenScope("runtime");
+            }));
+            this.softwareComponent.addVariantsFromConfiguration(configuration, variant -> {
+                variant.getConfigurationVariant().getDescription().set("Dependencies embedded using Forge Jar-in-Jar.");
                 variant.mapToMavenScope("runtime");
             });
-        });
-
-        project.getComponents().named("java", AdhocComponentWithVariants.class, component -> {
-            component.addVariantsFromConfiguration(jarJarRuntimeElements.get(), ConfigurationVariantDetails::mapToOptional);
         });
 
         project.afterEvaluate(this::finish);
@@ -132,7 +139,7 @@ abstract class JarJarContainerImpl implements JarJarContainerInternal {
     }
 
     @Override
-    public NamedDomainObjectProvider<AdhocComponentWithVariants> getSoftwareComponent() {
+    public AdhocComponentWithVariants getSoftwareComponent() {
         return this.softwareComponent;
     }
 }

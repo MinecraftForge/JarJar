@@ -34,7 +34,7 @@ non-sealed interface JarJarExtensionInternal extends JarJarExtension, HasPublicT
     }
 
     @Override
-    default NamedDomainObjectProvider<AdhocComponentWithVariants> getSoftwareComponent() {
+    default AdhocComponentWithVariants getSoftwareComponent() {
         return this.getContainer().getSoftwareComponent();
     }
 

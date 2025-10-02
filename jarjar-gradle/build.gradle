@@ -7,7 +7,7 @@ plugins {
     id 'idea'
     id 'eclipse'
     id 'maven-publish'
-    id 'io.freefair.javadoc-links'
+    //id 'io.freefair.javadoc-links'
     id 'net.minecraftforge.gradleutils'
     alias libs.plugins.gitversion
     alias libs.plugins.changelog
@@ -16,7 +16,6 @@ plugins {
     alias libs.plugins.shadow
 }
 
-base.archivesName = 'jarjar-gradle'
 gradleutils.displayName = 'Forge Jar-in-Jar Gradle'
 description = "Enables buildscripts to embed dependencies using Forge's Jar-in-Jar specification with minimal hassle."
 group = 'net.minecraftforge'
@@ -25,7 +24,7 @@ version = gitversion.tagOffset
 java {
     toolchain.languageVersion = JavaLanguageVersion.of(17)
     withSourcesJar()
-    withJavadocJar()
+    //withJavadocJar()
 }
 
 gradleutils.pluginDevDefaults(configurations, libs.versions.gradle)
@@ -87,8 +86,6 @@ publishing {
     }
 
     publications.register('pluginMaven', MavenPublication) {
-        artifactId = base.archivesName.get()
-
         changelog.publish(it)
         gradleutils.promote(it)
 
