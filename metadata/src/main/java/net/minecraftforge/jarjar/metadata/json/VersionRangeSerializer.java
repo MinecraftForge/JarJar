@@ -16,7 +16,6 @@ import org.apache.maven.artifact.versioning.Restriction;
 import org.apache.maven.artifact.versioning.VersionRange;
 
 import java.lang.reflect.Type;
-import java.util.Iterator;
 import java.util.stream.Collectors;
 
 public class VersionRangeSerializer implements JsonSerializer<VersionRange>, JsonDeserializer<VersionRange> {
