@@ -19,10 +19,12 @@ import org.gradle.api.tasks.Classpath;
 import org.gradle.api.tasks.InputFile;
 import org.gradle.api.tasks.InputFiles;
 import org.gradle.api.tasks.SkipWhenEmpty;
+import org.gradle.api.tasks.TaskDependency;
 import org.gradle.api.tasks.TaskProvider;
 import org.gradle.jvm.tasks.Jar;
 import org.gradle.language.base.plugins.LifecycleBasePlugin;
 import org.jetbrains.annotations.ApiStatus;
+import org.jetbrains.annotations.UnknownNullability;
 import org.jetbrains.annotations.VisibleForTesting;
 
 import javax.inject.Inject;
@@ -51,14 +53,19 @@ public abstract class JarJar extends org.gradle.api.tasks.bundling.Jar implement
         tasks.named(LifecycleBasePlugin.ASSEMBLE_TASK_NAME::equals).configureEach(it -> it.dependsOn(jarJar));
 
         project.afterEvaluate(p -> {
+            var jarJarTask = jarJar.get();
+
             var metadata = p.getTasks().register(jarJar.getName() + "Metadata", JarJarMetadata.class, task -> {
                 task.setDescription("Generates the Jar-in-Jar metadata to be used by task '%s'".formatted(jarJar.getName()));
-                task.getResolvedDependencies().set(jarJar.get().resolvedDependencies);
+                task.getResolvedDependencies().set(jarJarTask.resolvedDependencies);
             });
 
-            jarJar.get().dependsOn(metadata);
-            jarJar.get().getMetadataFile().set(metadata.flatMap(JarJarMetadata::getMetadataFile));
-            jarJar.get().setManifest(jar.get().getManifest());
+            if (jarJarTask.configurationBuildDependencies != null)
+                jarJarTask.dependsOn(jarJarTask.configurationBuildDependencies);
+
+            jarJarTask.dependsOn(metadata);
+            jarJarTask.getMetadataFile().set(metadata.flatMap(JarJarMetadata::getMetadataFile));
+            jarJarTask.setManifest(jar.get().getManifest());
         });
 
         return jarJar;
@@ -68,9 +75,11 @@ public abstract class JarJar extends org.gradle.api.tasks.bundling.Jar implement
 
     protected abstract @InputFiles @Classpath @SkipWhenEmpty ConfigurableFileCollection getIncludedClasspath();
 
+    private transient @UnknownNullability TaskDependency configurationBuildDependencies;
     final SetProperty<ResolvedDependencyInfo> resolvedDependencies = this.getObjectFactory().setProperty(ResolvedDependencyInfo.class);
 
     public void setConfiguration(Configuration configuration) {
+        this.configurationBuildDependencies = configuration.getBuildDependencies();
         this.resolvedDependencies.set(this.getProviders().provider(() -> configuration).map(c -> ResolvedDependencyInfo.from(this.problems, this.getProject().getConfigurations(), c)));
         this.getIncludedClasspath().setFrom(this.resolvedDependencies.map(ResolvedDependencyInfo::getFiles));
     }

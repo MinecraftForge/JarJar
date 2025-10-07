@@ -19,7 +19,7 @@ dependencies {
         }
     }
 
-    jarJar(files('example-project.jar')) {
+    jarJar(project('example-project')) {
         jarJar.configure(it) {
             module {
                 group = 'me.jonathing'
