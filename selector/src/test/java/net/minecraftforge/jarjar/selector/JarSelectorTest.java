@@ -14,7 +14,6 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.io.InputStream;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -145,13 +144,13 @@ public class JarSelectorTest {
     private static class Selector extends JarSelector<SelectionSource> {
         @Override
         @Nullable
-        protected InputStream getResource(SelectionSource source, Path path) {
+        protected InputStream getResource(SelectionSource source, String path) {
             return source.getResource(path).orElse(null);
         }
 
         @Override
         @Nullable
-        protected SelectionSource getNested(SelectionSource source, Path path) {
+        protected SelectionSource getNested(SelectionSource source, String path) {
             return source.getInternal(path).orElse(null);
         }
 
@@ -181,17 +180,16 @@ public class JarSelectorTest {
             this.name = name;
         }
 
-        public Optional<InputStream> getResource(final Path path) {
-            if (metadata != null && path.toString().replace('\\', '/').endsWith(JarSelector.CONTAINED_JARS_METADATA_PATH))
+        public Optional<InputStream> getResource(String path) {
+            if (metadata != null && path.replace('\\', '/').endsWith(JarSelector.CONTAINED_JARS_METADATA_PATH))
                 return Optional.of(MetadataIOHandler.toInputStream(metadata));
 
             return Optional.empty();
         }
 
-        public Optional<SelectionSource> getInternal(final Path path) {
-            if (internalSource != null && path.toString().contains(internalSource.getName())) {
+        public Optional<SelectionSource> getInternal(String path) {
+            if (internalSource != null && path.contains(internalSource.getName()))
                 return Optional.of(internalSource);
-            }
 
             return Optional.empty();
         }

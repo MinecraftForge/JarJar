@@ -26,7 +26,6 @@ public abstract class JarSelector<T> {
     private static final Logger LOGGER = LoggerFactory.getLogger(JarSelector.class);
 
     public static final String CONTAINED_JARS_METADATA_PATH = "META-INF/jarjar/metadata.json";
-    private static final Path metadataPath = Paths.get(CONTAINED_JARS_METADATA_PATH);
 
     @Deprecated //(forRemoval = true)
     public static <T, E extends Throwable> List<T> detectAndSelect(
@@ -39,14 +38,14 @@ public abstract class JarSelector<T> {
         JarSelector<T> selector = new JarSelector<T>() {
             @Override
             @Nullable
-            protected InputStream getResource(T source, Path path) {
-                return resourceReader.apply(source, path).orElse(null);
+            protected InputStream getResource(T source, String path) {
+                return resourceReader.apply(source, Paths.get(path)).orElse(null);
             }
 
             @Override
             @Nullable
-            protected T getNested(T source, Path path) {
-                return sourceProducer.apply(source, path).orElse(null);
+            protected T getNested(T source, String path) {
+                return sourceProducer.apply(source, Paths.get(path)).orElse(null);
             }
 
             @Override
@@ -72,12 +71,12 @@ public abstract class JarSelector<T> {
     /**
      * Return a input stream for the given source and path.
      */
-    protected abstract InputStream getResource(T source, Path path);
+    protected abstract InputStream getResource(T source, String path);
 
     /**
      * Return a nested source, that we can then call getResource on to return the metadata
      */
-    protected abstract T getNested(T source, Path path);
+    protected abstract T getNested(T source, String path);
 
     /**
      * Return a nice identification string for the given source, useful for logging
@@ -153,7 +152,7 @@ public abstract class JarSelector<T> {
             if (!seen.add(current))
                 continue;
 
-            InputStream is = getResource(current, metadataPath);
+            InputStream is = getResource(current, CONTAINED_JARS_METADATA_PATH);
             if (is == null)
                 continue;
 
@@ -164,7 +163,7 @@ public abstract class JarSelector<T> {
             int depth = depths.getOrDefault(current, 0) + 1;
 
             for (ContainedJarMetadata jar : metadata.jars()) {
-                T nested = getNested(current, Paths.get(jar.path()));
+                T nested = getNested(current, jar.path());
 
                 if (nested != null) {
                     DetectionResult<T> detection = new DetectionResult<>(jar, nested, depth);

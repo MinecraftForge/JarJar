@@ -1,0 +1,39 @@
+plugins {
+    id 'java'
+    id 'eclipse'
+    id 'net.minecraftforge.jarjar'
+}
+
+group = 'com.example'
+version = '1.0'
+
+jarJar.register()
+tasks.named('jar', Jar).configure {
+    manifest {
+        attributes('Automatic-Module-Name': 'jarjar.nested.outer')
+    }
+}
+
+dependencies {
+    compileOnly project(':jarjar-example-dep')
+    jarJar(project(':jarjar-example-dep')) {
+        jarJar.configure(it) {
+            module {
+                group = 'com.example'
+                name = 'example'
+            }
+            version = '1.0'
+        }
+    }
+    
+    compileOnly project(path: ':jarjar-example-nested-inner', configuration: 'outgoing')
+    jarJar(project(path: ':jarjar-example-nested-inner', configuration: 'outgoing')) {
+        jarJar.configure(it) {
+            module {
+                group = 'com.example'
+                name = 'nested-inner'
+            }
+            version = '1.0'
+        }
+    }
+}

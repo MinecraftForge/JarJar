@@ -41,6 +41,8 @@ public class ZipFsPathFsCompatTests {
         FileSystem jarFs = FileSystems.newFileSystem(URI.create("jar:" + windowsPath.toUri()), new HashMap<>());
         FileSystem pathFs = FileSystems.newFileSystem(URI.create("path:///test"), createMap("packagePath", Paths.get("src/test/resources/dir1.zip")));
 
+        Path path = jarFs.getPath("start/middle/end");
+        Path name = path.subpath(0, 4);
         assertEquals(
                 jarFs.getPath("/abc/xyz").getNameCount(),
                 pathFs.getPath("/abc/xyz").getNameCount()
