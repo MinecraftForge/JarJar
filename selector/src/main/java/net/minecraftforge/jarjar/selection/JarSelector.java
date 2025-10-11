@@ -29,11 +29,11 @@ public abstract class JarSelector<T> {
 
     @Deprecated //(forRemoval = true)
     public static <T, E extends Throwable> List<T> detectAndSelect(
-            final List<T> source,
-            final BiFunction<T, Path, Optional<InputStream>> resourceReader,
-            final BiFunction<T, Path, Optional<T>> sourceProducer,
-            final Function<T, String> identificationProducer,
-            final Function<Collection<ResolutionFailureInformation<T>>, E> failureExceptionProducer
+        final List<T> source,
+        final BiFunction<T, Path, Optional<InputStream>> resourceReader,
+        final BiFunction<T, Path, Optional<T>> sourceProducer,
+        final Function<T, String> identificationProducer,
+        final Function<Collection<ResolutionFailureInformation<T>>, E> failureExceptionProducer
     ) throws E {
         JarSelector<T> selector = new JarSelector<T>() {
             @Override
@@ -163,16 +163,14 @@ public abstract class JarSelector<T> {
             int depth = depths.getOrDefault(current, 0) + 1;
 
             for (ContainedJarMetadata jar : metadata.jars()) {
-                T nested = getNested(current, jar.path());
+                T nested = jar.path() == null || jar.path().isEmpty() ? null : getNested(current, jar.path());
+
+                DetectionResult<T> detection = new DetectionResult<>(jar, nested, depth);
+                this.detected.add(detection);
 
                 if (nested != null) {
-                    DetectionResult<T> detection = new DetectionResult<>(jar, nested, depth);
-                    this.detected.add(detection);
-
                     queue.add(nested);
                     depths.put(nested, depth);
-                } else {
-                    LOGGER.warn("The source jar: " + getIdentifier(current) + " is supposed to contain a jar: " + jar.path() + " but it does not exist.");
                 }
             }
         }
@@ -181,10 +179,15 @@ public abstract class JarSelector<T> {
     public List<T> select() {
         Map<ContainedJarMetadata, Collection<DetectionResult<T>>> detectedJarsBySource = new HashMap<>();
         Map<ContainedJarIdentifier, Collection<ContainedJarMetadata>> metadataByIdentifier = new HashMap<>();
+        Map<ContainedJarIdentifier, Collection<ContainedJarMetadata>> extraRestrictions = new HashMap<>();
 
         for (DetectionResult<T> detection : detected) {
             detectedJarsBySource.computeIfAbsent(detection.metadata, k -> new HashSet<>()).add(detection);
-            metadataByIdentifier.computeIfAbsent(detection.metadata.identifier(), k -> new HashSet<>()).add(detection.metadata);
+            Collection<ContainedJarMetadata> candidates = metadataByIdentifier.computeIfAbsent(detection.metadata.identifier(), k -> new HashSet<>());
+            if (detection.source() == null)
+                extraRestrictions.computeIfAbsent(detection.metadata.identifier(), k -> new HashSet<>()).add(detection.metadata);
+            else
+                candidates.add(detection.metadata);
         }
 
         Set<SelectionResult> options = new HashSet<>();
@@ -194,28 +197,36 @@ public abstract class JarSelector<T> {
             ContainedJarIdentifier identifier = entry.getKey();
             Collection<ContainedJarMetadata> jars = entry.getValue();
 
-            // No candidates, this shouldn't be possible because we check in detect if the jar exists, but doesn't hurt to check
+            //Find the most agreeable version:
+            VersionRange range = null;
+            for (ContainedJarMetadata jar : jars)
+                range = restrictRanges(range, jar.version().range());
+            for (ContainedJarMetadata jar : extraRestrictions.getOrDefault(identifier, Collections.emptyList()))
+                range = restrictRanges(range, jar.version().range());
+
+            // No candidates, this is possible if a mod requests a dependency, but doesn't supply it
             if (jars.size() == 0) {
-                options.add(new SelectionResult(identifier, jars, Optional.empty(), false));
+                options.add(new SelectionResult(identifier, Optional.empty(), false));
+                failed = true;
+                continue;
+            }
+
+            // No valid range found, we have to fail this
+            if (range == null || !isValid(range)) {
+                options.add(new SelectionResult(identifier, Optional.empty(), true));
                 failed = true;
                 continue;
             }
 
             // Only one choice, pick it
             if (jars.size() == 1) {
-                options.add(new SelectionResult(identifier, jars, Optional.of(jars.iterator().next()), false));
-                continue;
-            }
-
-            //Find the most agreeable version:
-            VersionRange range = null;
-            for (ContainedJarMetadata jar : jars)
-                range = restrictRanges(range, jar.version().range());
-
-            // No valid range found, we have to fail this
-            if (range == null || !isValid(range)) {
-                options.add(new SelectionResult(identifier, jars, Optional.empty(), true));
-                failed = true;
+                ContainedJarMetadata jar = jars.iterator().next();
+                if (range.containsVersion(jar.version().artifactVersion()))
+                    options.add(new SelectionResult(identifier, Optional.of(jars.iterator().next()), false));
+                else {
+                    options.add(new SelectionResult(identifier, Optional.empty(), false));
+                    failed = true;
+                }
                 continue;
             }
 
@@ -230,7 +241,7 @@ public abstract class JarSelector<T> {
                 }
 
                 if (found != null) {
-                    options.add(new SelectionResult(identifier, jars, Optional.of(found), false));
+                    options.add(new SelectionResult(identifier, Optional.of(found), false));
                     continue;
                 }
             }
@@ -250,7 +261,7 @@ public abstract class JarSelector<T> {
             if (found == null)
                 failed = true;
 
-            options.add(new SelectionResult(identifier, jars, Optional.ofNullable(found), false));
+            options.add(new SelectionResult(identifier, Optional.ofNullable(found), false));
         }
 
 
@@ -264,7 +275,7 @@ public abstract class JarSelector<T> {
                 Set<SourceWithRequestedVersionRange<T>> sources = new HashSet<>();
                 for (ContainedJarMetadata jar : metadataByIdentifier.get(result.identifier())) {
                     sources.add(new SourceWithRequestedVersionRange<T>(
-                        detectedJarsBySource.get(jar).stream().map(DetectionResult::source).collect(Collectors.toSet()),
+                        detectedJarsBySource.get(jar).stream().map(DetectionResult::source).filter(s -> s != null).collect(Collectors.toSet()),
                         jar.version().range(),
                         jar.version().artifactVersion()
                     ));
@@ -397,13 +408,11 @@ public abstract class JarSelector<T> {
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     private static final class SelectionResult {
         private final ContainedJarIdentifier identifier;
-        private final Collection<ContainedJarMetadata> candidates;
         private final Optional<ContainedJarMetadata> selected;
         private final boolean noValidRangeFound;
 
-        private SelectionResult(ContainedJarIdentifier identifier, Collection<ContainedJarMetadata> candidates, Optional<ContainedJarMetadata> selected, final boolean noValidRangeFound) {
+        private SelectionResult(ContainedJarIdentifier identifier, Optional<ContainedJarMetadata> selected, final boolean noValidRangeFound) {
             this.identifier = identifier;
-            this.candidates = candidates;
             this.selected = selected;
             this.noValidRangeFound = noValidRangeFound;
         }
@@ -426,20 +435,18 @@ public abstract class JarSelector<T> {
             if (obj == null || obj.getClass() != this.getClass()) return false;
             final SelectionResult that = (SelectionResult) obj;
             return Objects.equals(this.identifier, that.identifier) &&
-                    Objects.equals(this.candidates, that.candidates) &&
                     Objects.equals(this.selected, that.selected);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(identifier, candidates, selected);
+            return Objects.hash(identifier, selected);
         }
 
         @Override
         public String toString() {
             return "SelectionResult[" +
                     "identifier=" + identifier + ", " +
-                    "candidates=" + candidates + ", " +
                     "selected=" + selected + ']';
         }
     }

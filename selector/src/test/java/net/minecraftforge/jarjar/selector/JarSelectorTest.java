@@ -21,6 +21,8 @@ import java.util.List;
 import java.util.Optional;
 
 
+import static org.junit.jupiter.api.Assertions.*;
+
 public class JarSelectorTest {
 
     @Test
@@ -114,6 +116,70 @@ public class JarSelectorTest {
         Assertions.assertEquals(0, selectedSources.size(), "Expected no result, as the outer was forced.");
     }
 
+    @Test
+    public void reference_missing() throws InvalidVersionSpecificationException {
+        JarSelector<SelectionSource> selector = new Selector();
+        selector.add(source("wrapper", range("dep", "[1.0,)")));
+
+        assertThrows(IllegalStateException.class, () -> selector.select());
+    }
+
+    @Test
+    public void reference_invalid() throws InvalidVersionSpecificationException {
+        JarSelector<SelectionSource> selector = new Selector();
+        selector.add(source("wrapper", range("dep", "[2.0,)")));
+        selector.add(source("dep", version("dep", "1.0")));
+
+        assertThrows(IllegalStateException.class, () -> selector.select());
+    }
+
+    @Test
+    public void reference_valid() throws InvalidVersionSpecificationException {
+        SelectionSource dep = source("dep", version("dep", "2.0"));
+
+        JarSelector<SelectionSource> selector = new Selector();
+        selector.add(source("wrapper", range("dep", "[2.0,)")));
+        selector.add(dep);
+
+        List<SelectionSource> selectedSources = selector.select();
+
+        assertEquals(1, selectedSources.size());
+        assertEquals(dep, selectedSources.get(0));
+    }
+
+    private ContainedJarIdentifier id(String group) {
+        return id(group, "artifact");
+    }
+    private ContainedJarIdentifier id(String group, String artifact) {
+        return new ContainedJarIdentifier(group, artifact);
+    }
+
+    private ContainedVersion version(String version) {
+        return new ContainedVersion(null, new DefaultArtifactVersion(version));
+    }
+    private ContainedJarMetadata version(String name, String version) {
+        return new ContainedJarMetadata(id(name), version(version), "", false);
+    }
+    private ContainedVersion range(String range) {
+        try {
+            return new ContainedVersion(VersionRange.createFromVersionSpec(range), null);
+        } catch (InvalidVersionSpecificationException e) {
+            return sneak(e);
+        }
+    }
+    private ContainedJarMetadata range(String name, String range) {
+        return new ContainedJarMetadata(id(name), range(range), "", false);
+    }
+
+
+    private SelectionSource source(String name) {
+        return new SelectionSource(name);
+    }
+    private SelectionSource source(String name, ContainedJarMetadata... deps) {
+        return new SelectionSource(name, new Metadata(Arrays.asList(deps)), null);
+    }
+
+
 
     private SelectionSource createSource(final String outer_name, final ContainedJarMetadata artifact, final String inner_name) throws InvalidVersionSpecificationException {
         return createSource(outer_name, artifact, new SelectionSource(inner_name));
@@ -139,6 +205,11 @@ public class JarSelectorTest {
         JarSelector<SelectionSource> selector = new Selector();
         selector.add(sources);
         return selector.select();
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <R, E extends Throwable> R sneak(Throwable t) throws E {
+        throw (E) t;
     }
 
     private static class Selector extends JarSelector<SelectionSource> {
