@@ -67,6 +67,21 @@ public abstract class JarSelector<T> {
     private final Set<DetectionResult<T>> detected = new HashSet<>();
     // Identifiers claimed by the source files, these will override any nested resolutions
     private final Map<String, T> claimed = new HashMap<>();
+    private final Set<ContainedJarIdentifier> identifiers = new HashSet<>();
+
+    /**
+     * Returns if a dependency has been requested by something added by {@link #add(T)} or {@link #addRequirement(ContainedJarMetadata)}
+     */
+    public boolean isRequired(String group, String artifact) {
+        return isRequired(new ContainedJarIdentifier(group, artifact));
+    }
+
+    /**
+     * Returns if a dependency has been requested by something added by {@link #add(T)} or {@link #addRequirement(ContainedJarMetadata)}
+     */
+    public boolean isRequired(ContainedJarIdentifier identifier) {
+        return identifiers.contains(identifier);
+    }
 
     /**
      * Return a input stream for the given source and path.
@@ -132,6 +147,14 @@ public abstract class JarSelector<T> {
     }
 
     /**
+     * Adds a version restriction used when resolving dependencies.
+     * This is meant to be used in conjuction with {@link #option(T,ContainedJarMetadata)} to add transitive dependencies.
+     */
+    public void addRequirement(ContainedJarMetadata meta) {
+        this.detected.add(new DetectionResult<>(meta, null, 0));
+    }
+
+    /**
      * Recursively scans a source for jar-in-jar libraries
      */
     public void add(T source) {
@@ -167,6 +190,7 @@ public abstract class JarSelector<T> {
 
                 DetectionResult<T> detection = new DetectionResult<>(jar, nested, depth);
                 this.detected.add(detection);
+                this.identifiers.add(jar.identifier());
 
                 if (nested != null) {
                     queue.add(nested);
@@ -222,7 +246,7 @@ public abstract class JarSelector<T> {
             if (jars.size() == 1) {
                 ContainedJarMetadata jar = jars.iterator().next();
                 if (range.containsVersion(jar.version().artifactVersion()))
-                    options.add(new SelectionResult(identifier, Optional.of(jars.iterator().next()), false));
+                    options.add(new SelectionResult(identifier, Optional.of(jar), false));
                 else {
                     options.add(new SelectionResult(identifier, Optional.empty(), false));
                     failed = true;

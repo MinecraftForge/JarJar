@@ -117,7 +117,7 @@ public class JarSelectorTest {
     }
 
     @Test
-    public void reference_missing() throws InvalidVersionSpecificationException {
+    public void reference_missing() {
         JarSelector<SelectionSource> selector = new Selector();
         selector.add(source("wrapper", range("dep", "[1.0,)")));
 
@@ -125,7 +125,7 @@ public class JarSelectorTest {
     }
 
     @Test
-    public void reference_invalid() throws InvalidVersionSpecificationException {
+    public void reference_invalid() {
         JarSelector<SelectionSource> selector = new Selector();
         selector.add(source("wrapper", range("dep", "[2.0,)")));
         selector.add(source("dep", version("dep", "1.0")));
@@ -134,17 +134,25 @@ public class JarSelectorTest {
     }
 
     @Test
-    public void reference_valid() throws InvalidVersionSpecificationException {
-        SelectionSource dep = source("dep", version("dep", "2.0"));
+    public void reference_valid() {
+        SelectionSource dep = source("dep");
 
         JarSelector<SelectionSource> selector = new Selector();
         selector.add(source("wrapper", range("dep", "[2.0,)")));
-        selector.add(dep);
+        selector.option(dep, version("dep", "2.0"));
 
         List<SelectionSource> selectedSources = selector.select();
 
         assertEquals(1, selectedSources.size());
         assertEquals(dep, selectedSources.get(0));
+    }
+
+    @Test
+    public void requires() {
+        JarSelector<SelectionSource> selector = new Selector();
+        selector.add(source("wrapper", range("dep", "[2.0,)")));
+        assertTrue(selector.isRequired(id("dep")));
+        assertFalse(selector.isRequired(id("unknown")));
     }
 
     private ContainedJarIdentifier id(String group) {
