@@ -1,0 +1,36 @@
+plugins {
+    id 'java'
+    id 'eclipse'
+    id 'net.minecraftforge.jarjar'
+}
+
+group = 'com.example'
+version = '1.0'
+
+jarJar.register()
+tasks.named('jar', Jar).configure {
+    manifest {
+        attributes('Automatic-Module-Name': 'jarjar.nested.inner')
+    }
+}
+
+configurations {
+    outgoing
+}
+
+artifacts {
+    outgoing tasks.named('jarJar')
+}
+
+// Lets include a normal dependency, this should result in outer.jar -> inner.jar -> dep.jar
+dependencies {
+    jarJar(project(':jarjar-example-dep-2')) {
+        jarJar.configure(it) {
+            module {
+                group = 'com.example'
+                name = 'example'
+            }
+            version = '2.0'
+        }
+    }
+}

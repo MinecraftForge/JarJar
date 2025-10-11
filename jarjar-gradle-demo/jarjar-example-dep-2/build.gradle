@@ -1,0 +1,9 @@
+plugins {
+    id 'java'
+    id 'eclipse'
+}
+
+group = 'net.minecraftforge'
+version = '2.0'
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(9) // 9 so I can make a module-info

@@ -39,6 +39,10 @@ public final class MetadataIOHandler {
         .setPrettyPrinting()
         .create();
 
+    public static Gson getGson() {
+        return GSON;
+    }
+
     public static Optional<Metadata> fromStream(final InputStream stream) {
         try {
             return Optional.of(GSON.fromJson(new InputStreamReader(stream), Metadata.class));
