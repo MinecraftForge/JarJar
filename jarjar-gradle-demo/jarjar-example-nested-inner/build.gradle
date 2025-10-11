@@ -24,7 +24,6 @@ artifacts {
 
 // Lets include a normal dependency, this should result in outer.jar -> inner.jar -> dep.jar
 dependencies {
-    compileOnly project(':jarjar-example-dep-2')
     jarJar(project(':jarjar-example-dep-2')) {
         jarJar.configure(it) {
             module {

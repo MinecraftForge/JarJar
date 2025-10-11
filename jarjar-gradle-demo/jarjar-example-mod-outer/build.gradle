@@ -26,7 +26,6 @@ dependencies {
         }
     }
     
-    compileOnly project(path: ':jarjar-example-mod-inner', configuration: 'outgoing')
     jarJar(project(path: ':jarjar-example-mod-inner', configuration: 'outgoing')) {
         jarJar.configure(it) {
             module {

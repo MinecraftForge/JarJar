@@ -15,7 +15,6 @@ tasks.named('jar', Jar).configure {
 }
 
 dependencies {
-    compileOnly project(':jarjar-example-dep')
     jarJar(project(':jarjar-example-dep')) {
         jarJar.configure(it) {
             module {
@@ -26,7 +25,6 @@ dependencies {
         }
     }
     
-    compileOnly project(path: ':jarjar-example-nested-inner', configuration: 'outgoing')
     jarJar(project(path: ':jarjar-example-nested-inner', configuration: 'outgoing')) {
         jarJar.configure(it) {
             module {

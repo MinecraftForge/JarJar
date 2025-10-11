@@ -40,12 +40,12 @@ subprojects {
             destinationDirectory = rootProject.layout.buildDir.dir('libs')
         }
         if (tasks.findByName('jarJar')) {
-            rootProject.tasks.named('jarJar').configure {
+            rootProject.tasks.named('jarJar') {
                 dependsOn(child.tasks.named('jarJar'))
             }
         }
         // Allow for bulk cleaning
-        tasks.named('clean').configure {
+        tasks.named('clean') {
             dependsOn(tasks.named('cleanEclipse'))
         }
         parent.tasks.named('clean') {
