@@ -34,4 +34,6 @@ public sealed interface JarJarMetadataInfo permits JarJarMetadataInfoInternal {
     default void setRange(ProviderConvertible<? extends CharSequence> version) {
         this.setRange(version.asProvider());
     }
+
+    void setConstraint(boolean constraint);
 }

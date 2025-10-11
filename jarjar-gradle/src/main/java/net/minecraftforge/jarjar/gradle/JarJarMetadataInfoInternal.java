@@ -13,6 +13,7 @@ non-sealed interface JarJarMetadataInfoInternal extends JarJarMetadataInfo, JarJ
     String MODULE_NAME_PROPERTY = "__jarJar_module_name";
     String VERSION_PROPERTY = "__jarJar_version";
     String VERSION_RANGE_PROPERTY = "__jarJar_version_range";
+    String CONSTRAINT_PROPERTY = "__jarJar_constraint";
 
     @Override
     default TypeOf<?> getPublicType() {
@@ -27,6 +28,8 @@ non-sealed interface JarJarMetadataInfoInternal extends JarJarMetadataInfo, JarJ
     @Nullable String getVersion();
 
     @Nullable String getRange();
+
+    boolean isConstraint();
 
     boolean hasManuallySpecifiedRange();
 }

@@ -15,6 +15,7 @@ dependencies {
         transitive = false
         // this configures jarjar metadata.
         jarJar.configure(it) {
+            constraint = true
             version = '3.9.10'
         }
     }

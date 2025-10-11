@@ -30,23 +30,29 @@ final class ResolvedDependencyInfo implements Serializable {
     final String versionRange;
     final boolean hasManuallySpecifiedRange;
     final File artifact;
+    final boolean constraint;
     final String asString;
 
-    @Inject
+    private final int hashCode;
+
     public ResolvedDependencyInfo(ModuleVersionIdentifier module, String version, String versionRange,
-                                  boolean hasManuallySpecifiedRange, File artifact, String asString) {
+                                  boolean hasManuallySpecifiedRange, boolean constraint, File artifact, String asString) {
         this.module = module;
         this.version = version;
         this.versionRange = versionRange;
         this.hasManuallySpecifiedRange = hasManuallySpecifiedRange;
+        this.constraint = constraint;
         this.artifact = artifact;
         this.asString = asString;
+
+        this.hashCode = Objects.hash(module, version, versionRange, artifact);
     }
 
     static Set<File> getFiles(Set<ResolvedDependencyInfo> resolvedDependencies) {
         var ret = new HashSet<File>(resolvedDependencies.size());
         for (var dependency : resolvedDependencies) {
-            ret.add(dependency.artifact);
+            if (!dependency.constraint)
+                ret.add(dependency.artifact);
         }
         return ret;
     }
@@ -65,6 +71,7 @@ final class ResolvedDependencyInfo implements Serializable {
             var version = jarJar.getVersion();
             var versionRange = jarJar.getRange();
             var hasManuallySpecifiedRange = jarJar.hasManuallySpecifiedRange();
+            var constraint = jarJar.isConstraint();
 
             if (dependency instanceof FileCollectionDependency filesDependency) {
                 File artifact;
@@ -80,13 +87,15 @@ final class ResolvedDependencyInfo implements Serializable {
                     version,
                     versionRange,
                     hasManuallySpecifiedRange,
+                    constraint,
                     artifact,
                     Util.toString(filesDependency)
                 ));
             } else if (dependency instanceof ModuleDependency moduleDependency) {
                 moduleDependency = moduleDependency.copy();
                 if (moduleDependency instanceof ExternalModuleDependency externalModuleDependency) {
-                    externalModuleDependency.version(v -> v.strictly(version.toString()));
+                    if (version != null)
+                        externalModuleDependency.version(v -> v.strictly(version));
                 }
 
                 var detachedConfiguration = configurations.detachedConfiguration(moduleDependency);
@@ -106,6 +115,7 @@ final class ResolvedDependencyInfo implements Serializable {
                         version,
                         versionRange,
                         hasManuallySpecifiedRange,
+                        constraint,
                         artifact.getFile(),
                         Util.toString(moduleDependency)
                     ));
@@ -146,7 +156,7 @@ final class ResolvedDependencyInfo implements Serializable {
 
     @Override
     public int hashCode() {
-        return Objects.hash(module, version, versionRange, artifact);
+        return this.hashCode;
     }
 
     @Override
@@ -166,11 +176,17 @@ final class ResolvedDependencyInfo implements Serializable {
         private final String name;
         private final String version;
 
+        private final int hashCode;
+
         @Inject
         public MinimalModuleVersionIdentifier(String group, String name, String version) {
             this.group = group;
             this.name = name;
             this.version = version;
+
+            // DefualtModuleVersionIdentifier#hashCode
+            int hashCode = 31 * Objects.hash(group, name);
+            this.hashCode = version == null ? hashCode : hashCode ^ version.hashCode();
         }
 
         @Override
@@ -203,7 +219,7 @@ final class ResolvedDependencyInfo implements Serializable {
 
         @Override
         public int hashCode() {
-            return Objects.hash(group, name, version);
+            return this.hashCode;
         }
 
         @Override

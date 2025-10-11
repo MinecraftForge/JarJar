@@ -1,14 +1,11 @@
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
-import com.github.jengelman.gradle.plugins.shadow.ShadowJavaPlugin
-import org.gradle.api.attributes.plugin.GradlePluginApiVersion
 
 plugins {
     id 'java-gradle-plugin'
     id 'idea'
     id 'eclipse'
     id 'maven-publish'
-    //id 'io.freefair.javadoc-links'
-    id 'net.minecraftforge.gradleutils'
+    alias libs.plugins.gradleutils
     alias libs.plugins.gitversion
     alias libs.plugins.changelog
     alias libs.plugins.licenser

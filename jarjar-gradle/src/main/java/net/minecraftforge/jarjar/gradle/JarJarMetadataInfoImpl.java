@@ -78,4 +78,18 @@ abstract class JarJarMetadataInfoImpl implements JarJarMetadataInfoInternal {
     public boolean hasManuallySpecifiedRange() {
         return this.ext.has(VERSION_RANGE_PROPERTY) && this.ext.get(VERSION_RANGE_PROPERTY) != null;
     }
+
+    @Override
+    public boolean isConstraint() {
+        try {
+            return (boolean) Objects.requireNonNull(ext.get(CONSTRAINT_PROPERTY));
+        } catch (ExtraPropertiesExtension.UnknownPropertyException | ClassCastException e) {
+            return false;
+        }
+    }
+
+    @Override
+    public void setConstraint(boolean constraint) {
+        this.ext.set(CONSTRAINT_PROPERTY, constraint);
+    }
 }
