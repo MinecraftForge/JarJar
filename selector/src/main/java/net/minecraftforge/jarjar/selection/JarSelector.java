@@ -158,14 +158,14 @@ public abstract class JarSelector<T> {
      * Recursively scans a source for jar-in-jar libraries
      */
     public void add(T source) {
-        add(Arrays.asList(source));
+        add(Collections.singletonList(source));
     }
 
     /**
      * Recursively scans a collection of sources source for jar-in-jar libraries
      */
     public void add(Collection<T> source) {
-        Map<T, Integer> depths = new HashMap<>();
+        Map<T, Byte> depths = new HashMap<>();
 
         Queue<T> queue = new ArrayDeque<>(source);
         while (!queue.isEmpty()) {
@@ -183,7 +183,7 @@ public abstract class JarSelector<T> {
             if (metadata == null)
                 continue;
 
-            int depth = depths.getOrDefault(current, 0) + 1;
+            byte depth = (byte)(depths.getOrDefault(current, (byte)0) + 1);
 
             for (ContainedJarMetadata jar : metadata.jars()) {
                 T nested = jar.path() == null || jar.path().isEmpty() ? null : getNested(current, jar.path());
@@ -229,7 +229,7 @@ public abstract class JarSelector<T> {
                 range = restrictRanges(range, jar.version().range());
 
             // No candidates, this is possible if a mod requests a dependency, but doesn't supply it
-            if (jars.size() == 0) {
+            if (jars.isEmpty()) {
                 options.add(new SelectionResult(identifier, Optional.empty(), false));
                 failed = true;
                 continue;
@@ -343,7 +343,8 @@ public abstract class JarSelector<T> {
 
             T old = claimed.get(id);
             if (old != null) {
-                LOGGER.warn("Attempted to select a dependency jar for JarJar which was passed in as source: {}. Using {}", id, old);
+                if (old != jar) // Its possible people used `option()` to add a forced jar with better version info. Only warn if that isn't the case
+                    LOGGER.warn("Attempted to select a dependency jar for JarJar which was passed in as source: {}. Using {}", id, old);
                 itr.remove();
                 continue;
             }
