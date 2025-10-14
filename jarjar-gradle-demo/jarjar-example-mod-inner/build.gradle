@@ -1,0 +1,36 @@
+plugins {
+    id 'java'
+    id 'eclipse'
+    id 'net.minecraftforge.jarjar'
+}
+
+group = 'com.example'
+version = '1.0'
+
+repositories {
+    mavenCentral()
+}
+
+jarJar.register()
+tasks.named('jar', Jar).configure {
+    manifest {
+        attributes('Automatic-Module-Name': 'jarjar.mod.inner')
+    }
+}
+
+configurations {
+    outgoing
+}
+
+artifacts {
+    outgoing tasks.named('jarJar')
+}
+
+dependencies {
+    jarJar('io.github.llamalad7:mixinextras-forge:0.4.1') {
+        transitive = false
+        jarJar.configure(it) {
+            version = '0.4.1'
+        }
+    }
+}

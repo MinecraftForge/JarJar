@@ -1,5 +1,6 @@
 plugins {
     id 'java'
+    id 'eclipse'
     id 'net.minecraftforge.jarjar'
 }
 
@@ -11,7 +12,7 @@ repositories {
 jarJar.register()
 
 dependencies {
-    implementation(jarJar(('org.apache.maven:maven-artifact:3.9.11'))) {
+    implementation(jarJar('org.apache.maven:maven-artifact:3.9.11')) {
         transitive = false
         // this configures jarjar metadata.
         jarJar.configure(it) {
@@ -20,13 +21,36 @@ dependencies {
         }
     }
 
-    jarJar(project('example-project')) {
+    jarJar(project(':jarjar-example-dep')) {
         jarJar.configure(it) {
             module {
                 group = 'me.jonathing'
                 name = 'example'
             }
-            version = '1.0.0'
+            version = '1'
+        }
+    }
+    compileOnly project(':jarjar-example-nested-outer') // Force the sub-project to build when I run build, just convenience
+    compileOnly project(':jarjar-example-mod-outer') // Force the sub-project to build when I run build, just convenience
+}
+
+subprojects {
+    afterEvaluate { child ->
+        // Make all sub-projects put their jars in the root project folder, easier to locate
+        tasks.withType(Jar) {
+            destinationDirectory = rootProject.layout.buildDir.dir('libs')
+        }
+        if (tasks.findByName('jarJar')) {
+            rootProject.tasks.named('jarJar') {
+                dependsOn(child.tasks.named('jarJar'))
+            }
+        }
+        // Allow for bulk cleaning
+        tasks.named('clean') {
+            dependsOn(tasks.named('cleanEclipse'))
+        }
+        parent.tasks.named('clean') {
+            dependsOn(child.tasks.named('clean'))
         }
     }
 }

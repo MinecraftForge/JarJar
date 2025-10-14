@@ -2,10 +2,9 @@ dependencies {
     api projects.jarJarMetadata
 
     api libs.maven.artifact
-    api libs.gson
-    api libs.guava
-
-    api libs.noexception
+    
     api libs.slf4j.api
+    
+    compileOnly libs.nulls
     runtimeOnly libs.slf4j.simple
 }

@@ -14,4 +14,9 @@ plugins {
 
 rootProject.name = 'jarjar-gradle-demo'
 
-include 'example-project'
+include 'jarjar-example-dep'
+include 'jarjar-example-dep-2'
+include 'jarjar-example-mod-inner'
+include 'jarjar-example-mod-outer'
+include 'jarjar-example-nested-inner'
+include 'jarjar-example-nested-outer'

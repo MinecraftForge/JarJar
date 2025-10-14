@@ -1,0 +1,13 @@
+plugins {
+    id 'java'
+    id 'eclipse'
+}
+
+group = 'net.minecraftforge'
+version = '1.0'
+
+tasks.named('jar', Jar).configure {
+    manifest {
+        attributes('Automatic-Module-Name': 'jarjar.dep')
+    }
+}

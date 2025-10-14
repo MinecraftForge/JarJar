@@ -4,227 +4,372 @@
  */
 package net.minecraftforge.jarjar.selection;
 
-import com.google.common.collect.*;
 import net.minecraftforge.jarjar.metadata.*;
-import net.minecraftforge.jarjar.selection.util.Constants;
 import org.apache.maven.artifact.versioning.ArtifactVersion;
 import org.apache.maven.artifact.versioning.VersionRange;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.Map.Entry;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public final class JarSelector {
-    private JarSelector() { }
+public abstract class JarSelector<T> {
+    protected JarSelector() { }
 
     private static final Logger LOGGER = LoggerFactory.getLogger(JarSelector.class);
 
     public static final String CONTAINED_JARS_METADATA_PATH = "META-INF/jarjar/metadata.json";
 
+    @Deprecated //(forRemoval = true)
     public static <T, E extends Throwable> List<T> detectAndSelect(
-            final List<T> source,
-            final BiFunction<T, Path, Optional<InputStream>> resourceReader,
-            final BiFunction<T, Path, Optional<T>> sourceProducer,
-            final Function<T, String> identificationProducer,
-            final Function<Collection<ResolutionFailureInformation<T>>, E> failureExceptionProducer
+        final List<T> source,
+        final BiFunction<T, Path, Optional<InputStream>> resourceReader,
+        final BiFunction<T, Path, Optional<T>> sourceProducer,
+        final Function<T, String> identificationProducer,
+        final Function<Collection<ResolutionFailureInformation<T>>, E> failureExceptionProducer
     ) throws E {
-        final Set<DetectionResult<T>> detectedMetadata = detect(source, resourceReader, sourceProducer, identificationProducer);
-        final Multimap<ContainedJarMetadata, T> detectedJarsBySource = detectedMetadata.stream().collect(Multimaps.toMultimap(DetectionResult::metadata, DetectionResult::source, HashMultimap::create));
-        final Multimap<ContainedJarMetadata, T> detectedJarsByRootSource = detectedMetadata.stream().collect(Multimaps.toMultimap(DetectionResult::metadata, DetectionResult::rootSource, HashMultimap::create));
-        final Multimap<ContainedJarIdentifier, ContainedJarMetadata> metadataByIdentifier = Multimaps.index(detectedJarsByRootSource.keySet(), ContainedJarMetadata::identifier);
+        JarSelector<T> selector = new JarSelector<T>() {
+            @Override
+            @Nullable
+            protected InputStream getResource(T source, String path) {
+                return resourceReader.apply(source, Paths.get(path)).orElse(null);
+            }
 
-        final Set<SelectionResult> select = select(detectedJarsBySource.keySet());
+            @Override
+            @Nullable
+            protected T getNested(T source, String path) {
+                return sourceProducer.apply(source, Paths.get(path)).orElse(null);
+            }
 
-        if (select.stream().anyMatch(result -> !result.selected().isPresent())) {
+            @Override
+            protected String getIdentifier(T source) {
+                return identificationProducer.apply(source);
+            }
+
+            @Override
+            protected Throwable getFailureException(Collection<ResolutionFailureInformation<T>> failures) {
+                return failureExceptionProducer.apply(failures);
+            }
+        };
+
+        selector.force(source);
+        return selector.select();
+    }
+
+    private final Set<T> seen = new HashSet<>();
+    private final Set<DetectionResult<T>> detected = new HashSet<>();
+    // Identifiers claimed by the source files, these will override any nested resolutions
+    private final Map<String, T> claimed = new HashMap<>();
+    private final Set<ContainedJarIdentifier> identifiers = new HashSet<>();
+
+    /**
+     * Returns if a dependency has been requested by something added by {@link #add(T)} or {@link #addRequirement(ContainedJarMetadata)}
+     */
+    public boolean isRequired(String group, String artifact) {
+        return isRequired(new ContainedJarIdentifier(group, artifact));
+    }
+
+    /**
+     * Returns if a dependency has been requested by something added by {@link #add(T)} or {@link #addRequirement(ContainedJarMetadata)}
+     */
+    public boolean isRequired(ContainedJarIdentifier identifier) {
+        return identifiers.contains(identifier);
+    }
+
+    /**
+     * Return a input stream for the given source and path.
+     */
+    protected abstract InputStream getResource(T source, String path);
+
+    /**
+     * Return a nested source, that we can then call getResource on to return the metadata
+     */
+    protected abstract T getNested(T source, String path);
+
+    /**
+     * Return a nice identification string for the given source, useful for logging
+     * This should ideally match the identifier inside the Jar-in-Jar metadata.
+     */
+    protected abstract String getIdentifier(T source);
+
+    /**
+     * Create an exception for the given failures, it will be immediately thrown after calling
+     */
+    protected abstract Throwable getFailureException(Collection<ResolutionFailureInformation<T>> failures);
+
+    /**
+     * Force a version as a 'root' value.
+     * This causes them to override any nested dependency with the same identifier.
+     *
+     * Also calls {@link #add(T)} on the source.
+     */
+    public void force(T source) {
+        String id = getIdentifier(source);
+        T old = claimed.putIfAbsent(id, source);
+        if (old != null)
+            LOGGER.warn("Attempted to force two jars which have the same identification {}: {} and {}. Using {}", id, old, source, old);
+
+        add(source);
+    }
+
+    /**
+     * Force the passed in sources the 'root' values.
+     * This causes them to override any nested dependency with the same identifier.
+     *
+     * Also calls {@link #add(Collection<T>)} on the sources.
+     */
+    public void force(Collection<T> sources) {
+        for (T source : sources) {
+            String id = getIdentifier(source);
+            T old = claimed.putIfAbsent(id, source);
+            if (old != null)
+                LOGGER.warn("Attempted to force two jars which have the same identification {}: {} and {}. Using {}", id, old, source, old);
+        }
+
+        add(sources);
+    }
+
+    /**
+     * Adds a potential library to the options used when resolving dependencies.
+     * This is useful for adding non-nested jars as options to satisfy dependencies.
+     *
+     * This does NOT call {@link #add(T)}, so if you expect this source to have nested jars, call it yourself
+     */
+    public void option(T source, ContainedJarMetadata meta) {
+        this.detected.add(new DetectionResult<>(meta, source, (byte)0));
+    }
+
+    /**
+     * Adds a version restriction used when resolving dependencies.
+     * This is meant to be used in conjuction with {@link #option(T,ContainedJarMetadata)} to add transitive dependencies.
+     */
+    public void addRequirement(ContainedJarMetadata meta) {
+        this.detected.add(new DetectionResult<>(meta, null, (byte)0));
+    }
+
+    /**
+     * Recursively scans a source for jar-in-jar libraries
+     */
+    public void add(T source) {
+        add(Collections.singletonList(source));
+    }
+
+    /**
+     * Recursively scans a collection of sources source for jar-in-jar libraries
+     */
+    public void add(Collection<T> source) {
+        Map<T, Byte> depths = new HashMap<>();
+
+        Queue<T> queue = new ArrayDeque<>(source);
+        while (!queue.isEmpty()) {
+            T current = queue.remove();
+
+            // We've already seen this, skip re-procesing
+            if (!seen.add(current))
+                continue;
+
+            Metadata metadata = null;
+            try (InputStream is = getResource(current, CONTAINED_JARS_METADATA_PATH)) {
+                if (is == null)
+                    continue;
+
+                metadata = MetadataIOHandler.fromStream(is).orElse(null);
+            } catch (IOException e) {
+                LOGGER.error("Failed to parse metadata", e);
+            }
+
+            if (metadata == null)
+                continue;
+
+            byte depth = (byte)(depths.getOrDefault(current, (byte)0) + 1);
+            if (depth < 1) // Just in case this rolls over. People are crazy
+                depth = Byte.MAX_VALUE;
+
+            for (ContainedJarMetadata jar : metadata.jars()) {
+                T nested = jar.path() == null || jar.path().isEmpty() ? null : getNested(current, jar.path());
+
+                DetectionResult<T> detection = new DetectionResult<>(jar, nested, depth);
+                this.detected.add(detection);
+                this.identifiers.add(jar.identifier());
+
+                if (nested != null) {
+                    queue.add(nested);
+                    depths.put(nested, depth);
+                }
+            }
+        }
+    }
+
+    public List<T> select() {
+        Map<ContainedJarMetadata, Collection<DetectionResult<T>>> detectedJarsBySource = new HashMap<>();
+        Map<ContainedJarIdentifier, Collection<ContainedJarMetadata>> metadataByIdentifier = new HashMap<>();
+        Map<ContainedJarIdentifier, Collection<ContainedJarMetadata>> extraRestrictions = new HashMap<>();
+
+        for (DetectionResult<T> detection : detected) {
+            detectedJarsBySource.computeIfAbsent(detection.metadata, k -> new HashSet<>()).add(detection);
+            Collection<ContainedJarMetadata> candidates = metadataByIdentifier.computeIfAbsent(detection.metadata.identifier(), k -> new HashSet<>());
+            if (detection.source() == null)
+                extraRestrictions.computeIfAbsent(detection.metadata.identifier(), k -> new HashSet<>()).add(detection.metadata);
+            else
+                candidates.add(detection.metadata);
+        }
+
+        Set<SelectionResult> options = new HashSet<>();
+        boolean failed = false;
+
+        for (Entry<ContainedJarIdentifier, Collection<ContainedJarMetadata>> entry : metadataByIdentifier.entrySet()) {
+            ContainedJarIdentifier identifier = entry.getKey();
+            Collection<ContainedJarMetadata> jars = entry.getValue();
+
+            //Find the most agreeable version:
+            VersionRange range = null;
+            for (ContainedJarMetadata jar : jars)
+                range = restrictRanges(range, jar.version().range());
+            for (ContainedJarMetadata jar : extraRestrictions.getOrDefault(identifier, Collections.emptyList()))
+                range = restrictRanges(range, jar.version().range());
+
+            // No candidates, this is possible if a mod requests a dependency, but doesn't supply it
+            if (jars.isEmpty()) {
+                options.add(new SelectionResult(identifier, Optional.empty(), false));
+                failed = true;
+                continue;
+            }
+
+            // No valid range found, we have to fail this
+            if (range == null || !isValid(range)) {
+                options.add(new SelectionResult(identifier, Optional.empty(), true));
+                failed = true;
+                continue;
+            }
+
+            // Only one choice, pick it
+            if (jars.size() == 1) {
+                ContainedJarMetadata jar = jars.iterator().next();
+                if (range.containsVersion(jar.version().artifactVersion()))
+                    options.add(new SelectionResult(identifier, Optional.of(jar), false));
+                else {
+                    options.add(new SelectionResult(identifier, Optional.empty(), false));
+                    failed = true;
+                }
+                continue;
+            }
+
+            //If we have a recommended version, use that
+            if (range.getRecommendedVersion() != null) {
+                ContainedJarMetadata found = null;
+                for (ContainedJarMetadata jar : jars) {
+                    if (jar.version().artifactVersion().equals(range.getRecommendedVersion())) {
+                        found = jar;
+                        break;
+                    }
+                }
+
+                if (found != null) {
+                    options.add(new SelectionResult(identifier, Optional.of(found), false));
+                    continue;
+                }
+            }
+
+            // Find the highest available version in the range
+            // Note the old version found the 'first' match. Which relied on implementation details of MultiHashMap, and can vary based on java versions.
+            // If someone relied on that, screw them.
+            ContainedJarMetadata found = null;
+            for (ContainedJarMetadata jar : jars) {
+                if (!range.containsVersion(jar.version().artifactVersion()))
+                    continue;
+
+                if (found == null || jar.version().artifactVersion().compareTo(found.version().artifactVersion()) > 0)
+                    found = jar;
+            }
+
+            if (found == null)
+                failed = true;
+
+            options.add(new SelectionResult(identifier, Optional.ofNullable(found), false));
+        }
+
+
+        if (failed) {
             //We have entered into failure territory. Let's collect all of those that failed
-            final Set<SelectionResult> failed = select.stream().filter(result -> !result.selected().isPresent()).collect(Collectors.toSet());
+            List<ResolutionFailureInformation<T>> failures = new ArrayList<>();
+            for (SelectionResult result : options) {
+                if (result.selected().isPresent())
+                    continue;
 
-            final List<ResolutionFailureInformation<T>> resolutionFailures = new ArrayList<>();
-            for (final SelectionResult failedResult : failed) {
-                final ContainedJarIdentifier failedIdentifier = failedResult.identifier();
-                final Collection<ContainedJarMetadata> metadata = metadataByIdentifier.get(failedIdentifier);
-                final Set<SourceWithRequestedVersionRange<T>> sources = metadata.stream().map(containedJarMetadata -> {
-                            final Collection<T> rootSources = detectedJarsBySource.get(containedJarMetadata);
-                            return new SourceWithRequestedVersionRange<T>(rootSources, containedJarMetadata.version().range(), containedJarMetadata.version().artifactVersion());
-                        })
-                        .collect(Collectors.toSet());
-
-                final ResolutionFailureInformation<T> resolutionFailure = new ResolutionFailureInformation<>(getFailureReason(failedResult), failedIdentifier, sources);
-
-                resolutionFailures.add(resolutionFailure);
-            }
-
-            final E exception = failureExceptionProducer.apply(resolutionFailures);
-            LOGGER.error("Failed to select jars for {}", resolutionFailures);
-            throw exception;
-        }
-
-        final List<T> selectedJars = new ArrayList<>(select.size());
-        for (SelectionResult result : select) {
-            final Optional<ContainedJarMetadata> optional = result.selected();
-            if (!optional.isPresent()) continue;
-
-            final ContainedJarMetadata selectedJarMetadata = optional.get();
-            if (!detectedJarsBySource.containsKey(selectedJarMetadata)) continue;
-
-            final Collection<T> sourceOfJar = detectedJarsBySource.get(selectedJarMetadata);
-            final Optional<T> s = sourceProducer.apply(sourceOfJar.iterator().next(), Paths.get(selectedJarMetadata.path()));
-            s.ifPresent(selectedJars::add);
-        }
-
-        final Map<String, T> selectedJarsByIdentification = selectedJars.stream()
-                .collect(Collectors.toMap(identificationProducer, Function.identity(), (t, t2) -> {
-                    LOGGER.warn("Attempted to select two dependency jars from JarJar which have the same identification: {} and {}. Using {}", t, t2, t);
-                    return t;
-                }));
-
-        final Map<String, T> sourceJarsByIdentification = source.stream()
-                .collect(Collectors.toMap(identificationProducer, Function.identity(), (t, t2) -> {
-                    LOGGER.warn("Attempted to select two source jars for JarJar which have the same identification: {} and {}. Using {}", t, t2, t);
-                    return t;
-                }));
-
-        //Strip out jars which are already included by source. We can't do any resolution on this anyway so we force the use of those by not returning them.
-        Iterator<String> itor = selectedJarsByIdentification.keySet().iterator();
-        while (itor.hasNext()) {
-            String identification = itor.next();
-            T sourceJar = sourceJarsByIdentification.get(identification);
-            if (sourceJar == null) continue;
-
-            LOGGER.warn("Attempted to select a dependency jar for JarJar which was passed in as source: {}. Using {}", identification, sourceJar);
-            itor.remove();
-        }
-        return new ArrayList<>(selectedJarsByIdentification.values());
-    }
-
-    private static <T> Set<DetectionResult<T>> detect(
-            final List<T> source,
-            final BiFunction<T, Path, Optional<InputStream>> resourceReader,
-            final BiFunction<T, Path, Optional<T>> sourceProducer,
-            final Function<T, String> identificationProducer) {
-        final Path metadataPath = Paths.get(CONTAINED_JARS_METADATA_PATH);
-        final Map<T, Optional<InputStream>> metadataInputStreamsBySource = source.stream().collect(
-                Collectors.toMap(
-                        Function.identity(),
-                        t -> resourceReader.apply(t, metadataPath)
-                )
-        );
-
-
-        final Map<T, Metadata> rootMetadataBySource = metadataInputStreamsBySource.entrySet().stream()
-                .filter(kvp -> kvp.getValue().isPresent())
-                .map(kvp -> new SourceWithOptionalMetadata<>(kvp.getKey(), MetadataIOHandler.fromStream(kvp.getValue().get())))
-                .filter(sourceWithOptionalMetadata -> sourceWithOptionalMetadata.metadata().isPresent())
-                .collect(
-                        Collectors.toMap(
-                                SourceWithOptionalMetadata::source,
-                                sourceWithOptionalMetadata -> sourceWithOptionalMetadata.metadata().get()
-                        )
-                );
-
-        return recursivelyDetectContainedJars(
-                rootMetadataBySource,
-                resourceReader,
-                sourceProducer,
-                identificationProducer
-        );
-    }
-
-    private static <T> Set<DetectionResult<T>> recursivelyDetectContainedJars(
-            final Map<T, Metadata> rootMetadataBySource,
-            final BiFunction<T, Path, Optional<InputStream>> resourceReader,
-            final BiFunction<T, Path, Optional<T>> sourceProducer,
-            final Function<T, String> identificationProducer) {
-        final Set<DetectionResult<T>> results = Sets.newHashSet();
-        final Map<T, T> rootSourcesBySource = Maps.newHashMap();
-
-        final Queue<T> sourcesToProcess = new LinkedList<>();
-        for (final Map.Entry<T, Metadata> entry : rootMetadataBySource.entrySet()) {
-            entry.getValue().jars().stream().map(containedJarMetadata -> new DetectionResult<>(containedJarMetadata, entry.getKey(), entry.getKey()))
-                    .forEach(results::add);
-
-            for (final ContainedJarMetadata jar : entry.getValue().jars()) {
-                final Optional<T> source = sourceProducer.apply(entry.getKey(), Paths.get(jar.path()));
-                if (source.isPresent()) {
-                    sourcesToProcess.add(source.get());
-                    rootSourcesBySource.put(source.get(), entry.getKey());
-                } else {
-                    LOGGER.warn("The source jar: " + identificationProducer.apply(entry.getKey()) + " is supposed to contain a jar: " + jar.path() + " but it does not exist.");
+                Set<SourceWithRequestedVersionRange<T>> sources = new HashSet<>();
+                for (ContainedJarMetadata jar : metadataByIdentifier.get(result.identifier())) {
+                    sources.add(new SourceWithRequestedVersionRange<T>(
+                        detectedJarsBySource.get(jar).stream().map(DetectionResult::source).filter(s -> s != null).collect(Collectors.toSet()),
+                        jar.version().range(),
+                        jar.version().artifactVersion()
+                    ));
                 }
+
+                failures.add(new ResolutionFailureInformation<>(getFailureReason(result), result.identifier(), sources));
+            }
+
+            LOGGER.error("Failed to select jars for {}", failures);
+            return sneak(getFailureException(failures));
+        }
+
+        final List<T> selectedJars = new ArrayList<>(options.size());
+        for (SelectionResult result : options) {
+            ContainedJarMetadata meta = result.selected().orElse(null);
+
+            if (meta == null)
+                continue;
+
+            Collection<DetectionResult<T>> sourceOfJar = detectedJarsBySource.get(meta);
+            if (sourceOfJar == null || sourceOfJar.isEmpty())
+                continue;
+
+            // Lets pick the least nested source, should make extracting files faster
+            DetectionResult<T> nearest = null;
+            for (DetectionResult<T> info : sourceOfJar) {
+                if (nearest == null || nearest.depth > info.depth)
+                    nearest = info;
+            }
+
+            T winner = nearest == null ? null : nearest.source;
+            if (winner != null)
+                selectedJars.add(winner);
+        }
+
+
+        Map<String, T> seen = new HashMap<>();
+        for (Iterator<T> itr = selectedJars.iterator(); itr.hasNext(); ) {
+            T jar = itr.next();
+            String id = this.getIdentifier(jar);
+
+            T old = claimed.get(id);
+            if (old != null) {
+                if (old != jar) // Its possible people used `option()` to add a forced jar with better version info. Only warn if that isn't the case
+                    LOGGER.warn("Attempted to select a dependency jar for JarJar which was passed in as source: {}. Using {}", id, old);
+                itr.remove();
+                continue;
+            }
+
+            old = seen.putIfAbsent(id, jar);
+            if (old != null) {
+                LOGGER.warn("Attempted to select two dependency jars from JarJar which have the same identification {}: {} and {}. Using the former", id, old, jar);
+                itr.remove();
             }
         }
 
-        while (!sourcesToProcess.isEmpty()) {
-            final T source = sourcesToProcess.remove();
-            final T rootSource = rootSourcesBySource.get(source);
-            final Optional<InputStream> metadataInputStream = resourceReader.apply(source, Paths.get(CONTAINED_JARS_METADATA_PATH));
-            if (metadataInputStream.isPresent()) {
-                final Optional<Metadata> metadata = MetadataIOHandler.fromStream(metadataInputStream.get());
-                if (metadata.isPresent()) {
-                    metadata.get().jars().stream().map(containedJarMetadata -> new DetectionResult<>(containedJarMetadata, source, rootSource))
-                            .forEach(results::add);
-
-                    for (final ContainedJarMetadata jar : metadata.get().jars()) {
-                        final Optional<T> sourceJar = sourceProducer.apply(source, Paths.get(jar.path()));
-                        if (sourceJar.isPresent()) {
-                            sourcesToProcess.add(sourceJar.get());
-                            rootSourcesBySource.put(sourceJar.get(), rootSource);
-                        } else {
-                            LOGGER.warn("The source jar: " + identificationProducer.apply(source) + " is supposed to contain a jar: " + jar.path() + " but it does not exist.");
-                        }
-                    }
-                }
-            }
-        }
-
-        return results;
+        return selectedJars;
     }
 
-    private static Set<SelectionResult> select(final Set<ContainedJarMetadata> containedJarMetadata) {
-        final Multimap<ContainedJarIdentifier, ContainedJarMetadata> jarsByIdentifier = containedJarMetadata.stream()
-                .collect(
-                        Multimaps.toMultimap(
-                                ContainedJarMetadata::identifier,
-                                Function.identity(),
-                                HashMultimap::create
-                        )
-                );
-
-        return jarsByIdentifier.keySet().stream()
-                .map(identifier -> {
-                    final Collection<ContainedJarMetadata> jars = jarsByIdentifier.get(identifier);
-
-                    if (jars.size() <= 1) {
-                        //Quick return:
-                        return new SelectionResult(identifier, jars, Optional.of(jars.iterator().next()), false);
-                    }
-
-                    //Find the most agreeable version:
-                    final VersionRange range = jars.stream()
-                            .map(ContainedJarMetadata::version)
-                            .map(ContainedVersion::range)
-                            .reduce(null, JarSelector::restrictRanges);
-
-                    if (range == null || !isValid(range)) {
-                        return new SelectionResult(identifier, jars, Optional.empty(), true);
-                    }
-
-                    if (range.getRecommendedVersion() != null) {
-                        final Optional<ContainedJarMetadata> selected =
-                                jars.stream().filter(jar -> jar.version().artifactVersion().equals(range.getRecommendedVersion())).findFirst();
-                        return new SelectionResult(identifier, jars, selected, false);
-                    }
-
-                    final Optional<ContainedJarMetadata> selected = jars.stream().filter(jar -> range.containsVersion(jar.version().artifactVersion())).findFirst();
-                    return new SelectionResult(identifier, jars, selected, false);
-                })
-                .collect(Collectors.toSet());
+    @SuppressWarnings("unchecked")
+    private static <R, E extends Throwable> R sneak(Throwable t) throws E {
+        throw (E) t;
     }
 
     private static VersionRange restrictRanges(final VersionRange versionRange, final VersionRange versionRange2) {
@@ -253,68 +398,19 @@ public final class JarSelector {
         return FailureReason.NO_MATCHING_JAR;
     }
 
-    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-    private static final class SourceWithOptionalMetadata<Z> {
-        private final Z source;
-        private final Optional<Metadata> metadata;
-
-        SourceWithOptionalMetadata(Z source, Optional<Metadata> metadata) {
-            this.source = source;
-            this.metadata = metadata;
-        }
-
-        public Z source() {
-            return source;
-        }
-
-        public Optional<Metadata> metadata() {
-            return metadata;
-        }
-
-        @SuppressWarnings("rawtypes")
-        @Override
-        public boolean equals(Object obj) {
-            if (obj == this) return true;
-            if (obj == null || obj.getClass() != this.getClass()) return false;
-            final SourceWithOptionalMetadata that = (SourceWithOptionalMetadata) obj;
-            return Objects.equals(this.source, that.source) &&
-                    Objects.equals(this.metadata, that.metadata);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(source, metadata);
-        }
-
-        @Override
-        public String toString() {
-            return "SourceWithOptionalMetadata[" +
-                    "source=" + source + ", " +
-                    "metadata=" + metadata + ']';
-        }
-    }
-
     private static final class DetectionResult<Z> {
         private final ContainedJarMetadata metadata;
         private final Z source;
-        private final Z rootSource;
+        private final byte depth;
 
-        private DetectionResult(ContainedJarMetadata metadata, Z source, Z rootSource) {
+        private DetectionResult(ContainedJarMetadata metadata, Z source, byte depth) {
             this.metadata = metadata;
             this.source = source;
-            this.rootSource = rootSource;
+            this.depth = depth;
         }
 
-        public ContainedJarMetadata metadata() {
-            return metadata;
-        }
-
-        public Z source() {
+        private Z source() {
             return source;
-        }
-
-        public Z rootSource() {
-            return rootSource;
         }
 
         @SuppressWarnings("rawtypes")
@@ -325,12 +421,12 @@ public final class JarSelector {
             final DetectionResult that = (DetectionResult) obj;
             return Objects.equals(this.metadata, that.metadata) &&
                     Objects.equals(this.source, that.source) &&
-                    Objects.equals(this.rootSource, that.rootSource);
+                    this.depth == that.depth;
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(metadata, source, rootSource);
+            return Objects.hash(metadata, source, depth);
         }
 
         @Override
@@ -338,30 +434,24 @@ public final class JarSelector {
             return "DetectionResult[" +
                     "metadata=" + metadata + ", " +
                     "source=" + source + ", " +
-                    "rootSource=" + rootSource + ']';
+                    "depth=" + depth + ']';
         }
     }
 
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     private static final class SelectionResult {
         private final ContainedJarIdentifier identifier;
-        private final Collection<ContainedJarMetadata> candidates;
         private final Optional<ContainedJarMetadata> selected;
         private final boolean noValidRangeFound;
 
-        private SelectionResult(ContainedJarIdentifier identifier, Collection<ContainedJarMetadata> candidates, Optional<ContainedJarMetadata> selected, final boolean noValidRangeFound) {
+        private SelectionResult(ContainedJarIdentifier identifier, Optional<ContainedJarMetadata> selected, final boolean noValidRangeFound) {
             this.identifier = identifier;
-            this.candidates = candidates;
             this.selected = selected;
             this.noValidRangeFound = noValidRangeFound;
         }
 
         public ContainedJarIdentifier identifier() {
             return identifier;
-        }
-
-        public Collection<ContainedJarMetadata> candidates() {
-            return candidates;
         }
 
         public Optional<ContainedJarMetadata> selected() {
@@ -378,20 +468,18 @@ public final class JarSelector {
             if (obj == null || obj.getClass() != this.getClass()) return false;
             final SelectionResult that = (SelectionResult) obj;
             return Objects.equals(this.identifier, that.identifier) &&
-                    Objects.equals(this.candidates, that.candidates) &&
                     Objects.equals(this.selected, that.selected);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(identifier, candidates, selected);
+            return Objects.hash(identifier, selected);
         }
 
         @Override
         public String toString() {
             return "SelectionResult[" +
                     "identifier=" + identifier + ", " +
-                    "candidates=" + candidates + ", " +
                     "selected=" + selected + ']';
         }
     }
