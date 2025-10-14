@@ -11,6 +11,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -143,7 +144,7 @@ public abstract class JarSelector<T> {
      * This does NOT call {@link #add(T)}, so if you expect this source to have nested jars, call it yourself
      */
     public void option(T source, ContainedJarMetadata meta) {
-        this.detected.add(new DetectionResult<>(meta, source, 0));
+        this.detected.add(new DetectionResult<>(meta, source, (byte)0));
     }
 
     /**
@@ -151,7 +152,7 @@ public abstract class JarSelector<T> {
      * This is meant to be used in conjuction with {@link #option(T,ContainedJarMetadata)} to add transitive dependencies.
      */
     public void addRequirement(ContainedJarMetadata meta) {
-        this.detected.add(new DetectionResult<>(meta, null, 0));
+        this.detected.add(new DetectionResult<>(meta, null, (byte)0));
     }
 
     /**
@@ -175,15 +176,22 @@ public abstract class JarSelector<T> {
             if (!seen.add(current))
                 continue;
 
-            InputStream is = getResource(current, CONTAINED_JARS_METADATA_PATH);
-            if (is == null)
-                continue;
+            Metadata metadata = null;
+            try (InputStream is = getResource(current, CONTAINED_JARS_METADATA_PATH)) {
+                if (is == null)
+                    continue;
 
-            Metadata metadata = MetadataIOHandler.fromStream(is).orElse(null);
+                metadata = MetadataIOHandler.fromStream(is).orElse(null);
+            } catch (IOException e) {
+                LOGGER.error("Failed to parse metadata", e);
+            }
+
             if (metadata == null)
                 continue;
 
             byte depth = (byte)(depths.getOrDefault(current, (byte)0) + 1);
+            if (depth < 1) // Just in case this rolls over. People are crazy
+                depth = Byte.MAX_VALUE;
 
             for (ContainedJarMetadata jar : metadata.jars()) {
                 T nested = jar.path() == null || jar.path().isEmpty() ? null : getNested(current, jar.path());
@@ -351,7 +359,7 @@ public abstract class JarSelector<T> {
 
             old = seen.putIfAbsent(id, jar);
             if (old != null) {
-                LOGGER.warn("Attempted to select two dependency jars from JarJar which have the same identification {}: {} and {}. Using {}", id, old, jar, old);
+                LOGGER.warn("Attempted to select two dependency jars from JarJar which have the same identification {}: {} and {}. Using the former", id, old, jar);
                 itr.remove();
             }
         }
@@ -393,9 +401,9 @@ public abstract class JarSelector<T> {
     private static final class DetectionResult<Z> {
         private final ContainedJarMetadata metadata;
         private final Z source;
-        private final int depth;
+        private final byte depth;
 
-        private DetectionResult(ContainedJarMetadata metadata, Z source, int depth) {
+        private DetectionResult(ContainedJarMetadata metadata, Z source, byte depth) {
             this.metadata = metadata;
             this.source = source;
             this.depth = depth;

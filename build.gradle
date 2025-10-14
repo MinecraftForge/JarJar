@@ -46,6 +46,10 @@ subprojects {
     ((TestingExtension) testing).tap {
         suites.named('test', JvmTestSuite) {
             useJUnitJupiter(libs.versions.junit)
+            
+            dependencies {
+                compileOnly libs.nulls
+            }
 
             targets.configureEach {
                 testTask.configure {

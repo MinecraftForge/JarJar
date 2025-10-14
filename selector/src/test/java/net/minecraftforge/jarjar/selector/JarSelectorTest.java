@@ -17,6 +17,7 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -155,6 +156,36 @@ public class JarSelectorTest {
         assertFalse(selector.isRequired(id("unknown")));
     }
 
+    @Test
+    public void requirement_unmet() {
+        JarSelector<SelectionSource> selector = new Selector();
+        // We provide dep v1
+        selector.add(sourceWith("wrapper", "dep", "1.0"));
+        // Someone asks for v2+
+        selector.addRequirement(range("dep", "[2,)"));
+
+        // We shouldn't be able to resolve.
+        assertThrows(IllegalStateException.class, () -> selector.select());
+    }
+
+    @Test
+    public void requirement_met() {
+        SelectionSource v2 = source("dep");
+        JarSelector<SelectionSource> selector = new Selector();
+        // We provide dep v1
+        selector.add(sourceWith("wrapper", "dep", "1.0"));
+        // Someone asks for v2+
+        selector.addRequirement(range("dep", "[2,)"));
+        // We provide v2 as an option.
+        selector.option(v2, version("dep", "2"));
+
+        List<SelectionSource> selectedSources = selector.select();
+
+        assertEquals(1, selectedSources.size());
+        assertEquals(v2, selectedSources.get(0));
+    }
+
+
     private ContainedJarIdentifier id(String group) {
         return id(group, "artifact");
     }
@@ -163,20 +194,20 @@ public class JarSelectorTest {
     }
 
     private ContainedVersion version(String version) {
-        return new ContainedVersion(null, new DefaultArtifactVersion(version));
+        return contained('[' + version + ",)", version);
     }
     private ContainedJarMetadata version(String name, String version) {
         return new ContainedJarMetadata(id(name), version(version), "", false);
     }
-    private ContainedVersion range(String range) {
+    private ContainedVersion contained(String range, String version) {
         try {
-            return new ContainedVersion(VersionRange.createFromVersionSpec(range), null);
+            return new ContainedVersion(VersionRange.createFromVersionSpec(range), version == null ? null : new DefaultArtifactVersion(version));
         } catch (InvalidVersionSpecificationException e) {
             return sneak(e);
         }
     }
     private ContainedJarMetadata range(String name, String range) {
-        return new ContainedJarMetadata(id(name), range(range), "", false);
+        return new ContainedJarMetadata(id(name), contained(range, null), "", false);
     }
 
 
@@ -185,6 +216,14 @@ public class JarSelectorTest {
     }
     private SelectionSource source(String name, ContainedJarMetadata... deps) {
         return new SelectionSource(name, new Metadata(Arrays.asList(deps)), null);
+    }
+    private SelectionSource sourceWith(String name, String dep, String version) {
+        return new SelectionSource(name,
+            new Metadata(Collections.singletonList(
+                new ContainedJarMetadata(new ContainedJarIdentifier(dep, "artifact"), version(version), dep, false)
+            )),
+            new SelectionSource(dep)
+        );
     }
 
 
