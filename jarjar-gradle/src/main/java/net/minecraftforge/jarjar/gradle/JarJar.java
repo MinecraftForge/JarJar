@@ -4,6 +4,7 @@
  */
 package net.minecraftforge.jarjar.gradle;
 
+import net.minecraftforge.gradleutils.shared.Closures;
 import org.gradle.api.Action;
 import org.gradle.api.Project;
 import org.gradle.api.Task;
@@ -63,9 +64,15 @@ public abstract class JarJar extends org.gradle.api.tasks.bundling.Jar implement
             if (jarJarTask.configurationBuildDependencies != null)
                 jarJarTask.dependsOn(jarJarTask.configurationBuildDependencies);
 
-            jarJarTask.dependsOn(metadata);
-            jarJarTask.getMetadataFile().set(metadata.flatMap(JarJarMetadata::getMetadataFile));
-            jarJarTask.setManifest(jar.get().getManifest());
+            jar.get().configure(Closures.<Jar>consumer(jarTask -> {
+                jarTask.dependsOn(metadata);
+
+                jarTask.from(metadata.flatMap(JarJarMetadata::getMetadataFile), copy -> copy
+                    .into("META-INF/jarjar")
+                );
+
+                jarJarTask.setManifest(jarTask.getManifest());
+            }));
         });
 
         return jarJar;
@@ -89,8 +96,6 @@ public abstract class JarJar extends org.gradle.api.tasks.bundling.Jar implement
         this.setConfiguration(configuration.get());
     }
 
-    public abstract @InputFile RegularFileProperty getMetadataFile();
-
     private final JarJarProblems problems = this.getObjectFactory().newInstance(JarJarProblems.class);
 
     protected abstract @Inject ProviderFactory getProviders();
@@ -100,7 +105,6 @@ public abstract class JarJar extends org.gradle.api.tasks.bundling.Jar implement
     @Override
     protected void copy() {
         this.jarJarCopySpec.from(this.getIncludedClasspath());
-        this.jarJarCopySpec.from(this.getMetadataFile());
         super.copy();
     }
 }
