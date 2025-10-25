@@ -496,8 +496,9 @@ public abstract class JarSelector<T> {
 
         public SourceWithRequestedVersionRange(Collection<Z> sources, VersionRange requestedVersionRange, ArtifactVersion includedVersion) {
             this.sources = sources;
-            this.requestedVersionRange = requestedVersionRange;
             this.includedVersion = includedVersion;
+            // This should be @Nullable but this is public API and I need to keep compatibility.
+            this.requestedVersionRange = requestedVersionRange == null ? VersionRange.createFromVersion(includedVersion.toString()) : requestedVersionRange;
         }
 
         public Collection<Z> sources() {
