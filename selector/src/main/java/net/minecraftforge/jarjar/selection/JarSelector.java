@@ -153,6 +153,7 @@ public abstract class JarSelector<T> {
      */
     public void addRequirement(ContainedJarMetadata meta) {
         this.detected.add(new DetectionResult<>(meta, null, (byte)0));
+        this.identifiers.add(meta.identifier());
     }
 
     /**
